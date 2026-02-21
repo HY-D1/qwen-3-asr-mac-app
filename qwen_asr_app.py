@@ -242,8 +242,11 @@ class TranscriptionEngine:
             self.model = mlx_stt.load(model)
             self.model_name = model
         
-        # Generate
-        result = self.model.generate(audio_path, language=language)
+        # Generate - only pass language if specified, otherwise let model auto-detect
+        if language:
+            result = self.model.generate(audio_path, language=language)
+        else:
+            result = self.model.generate(audio_path)
         
         return {
             'text': result.text if hasattr(result, 'text') else str(result),
