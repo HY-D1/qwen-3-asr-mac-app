@@ -1,6 +1,6 @@
 # 🎙️ Qwen3-ASR Pro
 
-A professional speech-to-text application for macOS, optimized for Apple Silicon with MLX acceleration.
+A professional speech-to-text application for macOS with real-time streaming transcription and responsive UI.
 
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
 ![Architecture](https://img.shields.io/badge/arch-Apple%20Silicon%20%7C%20Intel-blue)
@@ -8,119 +8,199 @@ A professional speech-to-text application for macOS, optimized for Apple Silicon
 
 ## ✨ Features
 
-- **🎤 Real-time Recording** - One-click recording with configurable auto-stop
-- **📁 File Upload** - Support for WAV, MP3, M4A, FLAC, OGG
+- **🎓 Live Class Mode** - Real-time transcription with text appearing as you speak
+- **⚡ Fast Mode** - Optimized batch processing for quick recordings
+- **📁 Auto-Save** - Raw audio automatically saved for later review
+- **📱 Responsive UI** - Adapts to any window size (desktop/compact/mobile)
+- **🎚️ Smart Silence Detection** - Adjustable auto-stop (0.5s - 60s)
 - **⚡ MLX Acceleration** - Optimized for Apple Silicon (M1/M2/M3/M4)
-- **🎚️ Smart Silence Detection** - Adjustable pause duration (0.5s - 5s)
-- **📊 Performance Monitoring** - Real-time RTF (Real-Time Factor) metrics
-- **🌍 Multi-language** - Support for 50+ languages
+- **🌍 Multi-language** - Supports 50+ languages
 
 ## 🚀 Quick Start
 
 ```bash
-cd macos-asr-app
-./SETUP.command      # First-time setup
-./Qwen3-ASR.command  # Launch application
+# First-time setup
+./scripts/setup.command
+
+# Launch application
+./scripts/launch.command
 ```
 
-## 🎛️ Settings Guide
+## 📁 Project Structure
 
-### Auto-Stop Silence Duration
-Control how long the app waits before auto-stopping recording:
+```
+qwen-3-asr-mac-app-main/
+├── src/                       # Source code
+│   ├── __init__.py
+│   ├── main.py               # Entry point
+│   ├── app.py                # Main application
+│   └── constants.py          # Colors, settings
+├── scripts/                   # Shell scripts
+│   ├── launch.command        # Launch application
+│   └── setup.command         # Installation script
+├── assets/                    # Resources
+│   ├── c-asr/                # C implementation
+│   │   ├── qwen_asr         # Binary
+│   │   ├── download_model.sh
+│   │   └── samples/         # Test audio
+│   └── models/              # ML models (downloaded)
+├── backend/                   # Python virtual environment
+├── docs/                      # Documentation
+├── tests/                     # Test files
+├── README.md                  # This file
+├── LICENSE                    # MIT License
+└── .gitignore
+```
 
-| Preset | Duration | Best For |
-|--------|----------|----------|
-| **Fast** | 0.8s | Quick notes, commands |
-| **Normal** | 2.0s | General purpose (default) |
-| **Patient** | 3.5s | Natural speech with pauses |
+## 📱 Responsive Layout
 
-**Manual Adjustment**: Use the slider to set any value from 0.5s to 5.0s.
+The UI automatically adapts to your window size:
+
+| Mode | Window Width | Layout |
+|------|--------------|--------|
+| **Desktop** | > 750px | Full sidebar with all controls |
+| **Compact** | 550-750px | Collapsible sidebar |
+| **Mobile** | < 550px | Bottom bar + slide-out settings |
+
+**Manual Toggle**: Click ◀/▶ to collapse/expand the sidebar.
+
+## 🎓 Recording Modes
+
+### Live Class Mode (Recommended)
+```
+🎤 Microphone → [Stream] → 📺 Live Text + 💾 Raw File
+```
+- Text appears **word-by-word** as you speak (~2s delay)
+- Raw audio saved to `~/Documents/Qwen3-ASR-Recordings/`
+- Perfect for lectures and meetings
+
+### Fast Mode
+```
+🎤 Microphone → [Save] → [Process] → 📄 Text
+```
+- Faster processing (0.02x RTF vs 0.46x)
+- Best for quick voice memos
+
+## 🎛️ Settings
 
 ### Model Selection
-- **Qwen/Qwen3-ASR-0.6B** - Faster, good accuracy (recommended for most use cases)
-- **Qwen/Qwen3-ASR-1.7B** - Higher accuracy, slower processing
+- **0.6B (Fast)** - Faster, good accuracy
+- **1.7B (Accurate)** - Higher accuracy, slower (recommended)
 
 ### Language
-- **Auto** - Automatic language detection (default)
-- **English, Chinese, Japanese, Korean, Spanish, French, German** - Force specific language
+- **Auto** - Automatic detection
+- **English, Chinese, Japanese, Korean, Spanish, French, German**
 
-## ⚡ Performance
+### Auto-Stop Silence
+| Preset | Duration | Best For |
+|--------|----------|----------|
+| Fast | 0.8s | Quick notes |
+| Class | 30s | Lectures (recommended) |
+| Max | 60s | Long pauses |
 
-| Model | Hardware | RTF | Speed |
-|-------|----------|-----|-------|
-| 0.6B | M4 Max | ~0.02x | ~50x real-time |
-| 0.6B | M3 | ~0.03x | ~33x real-time |
-| 1.7B | M4 Max | ~0.05x | ~20x real-time |
+**Manual**: Use slider for any value 0.5s - 60s.
 
-*RTF (Real-Time Factor): Lower is faster. 0.02x means processing is 50x faster than real-time.*
+## 📁 File Organization
 
-## 🎯 Tips
-
-### Recording Stops Too Fast?
-1. Increase **Auto-stop silence** duration using the slider
-2. Click **Patient** preset (3.5s)
-3. Speak continuously without long pauses
-
-### Best Accuracy
-1. Select **1.7B model**
-2. Set language explicitly (not Auto)
-3. Minimize background noise
-4. Speak clearly at moderate pace
-
-### Maximum Speed
-1. Select **0.6B model**
-2. Use default settings
-3. Close other GPU-intensive applications
-
-## 📁 File Structure
-
+Recordings automatically saved to:
 ```
-macos-asr-app/
-├── Qwen3-ASR.command      # Main launcher
-├── SETUP.command          # Installation script
-├── qwen_asr_app.py        # Main application
-└── README.md              # Documentation
+~/Documents/Qwen3-ASR-Recordings/
+├── class_20240227_103000.wav    # Raw audio
+├── class_20240227_113000.wav    # Next recording
+└── ...
 ```
+
+## 📊 Performance
+
+| Model | Mode | Speed | Use Case |
+|-------|------|-------|----------|
+| 0.6B | MLX | ~0.02x RTF | Fast transcription |
+| 1.7B | MLX | ~0.03x RTF | Best accuracy |
+| 0.6B | Streaming | ~0.46x RTF | Live transcription |
+
+*RTF (Real-Time Factor): Lower is faster*
+
+## 🎯 Usage Tips
+
+### During Class
+1. Select **🎓 Live Class Mode**
+2. Set **Auto-stop** to 30s (Class preset)
+3. Click **Start Recording**
+4. Watch text appear live as professor speaks!
+
+### After Class
+1. Click **📁 Open Folder** to find raw audio
+2. Copy transcript from app to your notes
+3. Re-listen to confusing sections using raw file
 
 ## 🔧 Troubleshooting
 
 ### No Audio Detected
-1. Check **System Preferences → Security & Privacy → Microphone**
-2. Ensure Terminal (or your terminal app) has microphone permission
-3. Try clicking **Reset** and record again
+```bash
+# Check microphone permissions
+System Preferences → Security & Privacy → Microphone → Terminal ✅
+```
 
-### Slow Performance
-1. Check backend indicator in top-right (should show "⚡ MLX")
-2. Use **0.6B model** instead of 1.7B
-3. Close other applications using GPU
-4. Restart the app
+### C Binary Not Found
+```bash
+cd assets/c-asr
+make blas
+```
 
-### Transcription Errors
-1. Check audio file is not corrupted
-2. Try converting to WAV format first
-3. Ensure model files are downloaded (first run requires download)
-4. Check internet connection for initial model download
+### Model Download Issues
+```bash
+# Download manually
+cd assets/c-asr
+./download_model.sh --model small  # 0.6B
+./download_model.sh --model large  # 1.7B
+```
 
-### Backend Issues
-The app automatically selects the best available backend:
-1. **MLX-Audio** (Python API) - Best option, full features
-2. **MLX-CLI** (Command line) - Reliable fallback
-3. **PyTorch** - For Intel Macs or if MLX not available
+## 🏗️ Architecture
 
-## 🌐 Supported Languages
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Qwen3-ASR Pro                            │
+├─────────────────────────────────────────────────────────────┤
+│  🎓 Live Mode        │  ⚡ Fast Mode                        │
+│  ┌──────────────────┴─────────────────────────────────┐   │
+│  │ C Binary (Streaming)    │    MLX (Batch)          │   │
+│  │ • Real-time output      │    • Fast processing    │   │
+│  │ • Word-by-word          │    • High throughput    │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                        ↓                                    │
+│              Responsive Tkinter UI                          │
+│         (Desktop / Compact / Mobile)                        │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Qwen3-ASR supports 50+ languages including:
-- **Chinese** (Mandarin, Cantonese, Sichuanese, + 19 dialects)
-- **English** (US, UK, AU, + multiple accents)
-- **European**: French, German, Spanish, Italian, Portuguese, Russian, etc.
-- **Asian**: Japanese, Korean, Thai, Vietnamese, Indonesian, etc.
+## 🧑‍💻 Development
+
+### Running from Source
+```bash
+# Activate virtual environment
+source backend/venv/bin/activate
+
+# Run directly
+python src/main.py
+```
+
+### Building C Binary
+```bash
+cd assets/c-asr
+make blas
+```
 
 ## 🔗 References
 
 - [Qwen3-ASR GitHub](https://github.com/QwenLM/Qwen3-ASR)
 - [mlx-audio GitHub](https://github.com/Blaizzy/mlx-audio)
 - [MLX Framework](https://github.com/ml-explore/mlx)
+- [C Implementation](https://github.com/antirez/qwen-asr)
 
 ## 📝 License
 
 MIT License - Same as Qwen3-ASR and mlx-audio
+
+---
+
+**Made for macOS with ❤️**

@@ -105,7 +105,7 @@ echo "╔═══════════════════════�
 echo "║              ✅ Setup Complete!                            ║"
 echo "╠════════════════════════════════════════════════════════════╣"
 echo "║                                                            ║"
-echo "║  Launch: ./Qwen3-ASR.command                               ║"
+echo "║  Launch: ./scripts/launch.command                          ║"
 echo "║                                                            ║"
 echo "║  Features:                                                 ║"
 echo "║  • 🎤 Real-time recording with auto-stop                   ║"
