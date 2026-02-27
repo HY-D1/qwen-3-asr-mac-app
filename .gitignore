@@ -35,3 +35,4 @@ env/
 *.ckpt
 assets/c-asr/qwen3-asr-*/
 !assets/c-asr/qwen3-asr-*/.gitkeep
+output/
