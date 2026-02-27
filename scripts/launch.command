@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ╔══════════════════════════════════════════════════════════════════╗
-# ║         Qwen3-ASR Pro v2.3 - Optimized Speech-to-Text            ║
+# ║         Qwen3-ASR Pro v3.1.1 - Optimized Speech-to-Text            ║
 # ║         Based on official Qwen3-ASR & mlx-qwen3-asr              ║
 # ╚══════════════════════════════════════════════════════════════════╝
 
@@ -29,7 +29,7 @@ fi
 
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║         Qwen3-ASR Pro v2.3                                 ║"
+echo "║         Qwen3-ASR Pro v3.1.1                                 ║"
 echo "╠════════════════════════════════════════════════════════════╣"
 echo "║                                                            ║"
 echo "║  Features:                                                 ║"
@@ -45,7 +45,7 @@ echo ""
 echo "Starting application..."
 echo ""
 
-python qwen_asr_app.py
+python src/main.py
 
 if [ $? -ne 0 ]; then
     echo ""

@@ -26,3 +26,12 @@ env/
 # Temporary files
 *.tmp
 *.log
+
+# Model files (large binaries)
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+assets/c-asr/qwen3-asr-*/
+!assets/c-asr/qwen3-asr-*/.gitkeep
