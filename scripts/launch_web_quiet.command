@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ╔══════════════════════════════════════════════════════════════════╗
-# ║         Qwen3-ASR Pro - Web UI Launcher                          ║
-# ║         Works in browser - No tkinter needed                     ║
+# ║         Qwen3-ASR Pro - Web UI Launcher (Quiet Mode)             ║
+# ║         Hides all GIN and Ollama logs                            ║
 # ╚══════════════════════════════════════════════════════════════════╝
 
 cd "$(dirname "$0")/.."
@@ -76,9 +76,10 @@ if [ -z "$1" ]; then
     echo "   Press Ctrl+C to stop the server"
     echo ""
     
-    # Run web UI and filter common logs
+    # Run web UI and filter ALL logs
+    # Filter: GIN logs, download progress, urllib warnings, pip warnings
     python web_ui.py 2>&1 | \
-        grep -v -E "(GIN\]|\[GIN\]|level=(INFO|WARN)|source=.*\.go|download\.go|NotOpenSSLWarning|typer.*does not provide|consider upgrading)" | \
+        grep -v -E "(GIN\]|\[GIN\]|level=(INFO|WARN)|source=.*\.go|download\.go|NotOpenSSLWarning|typer.*does not provide)" | \
         grep -v "^\s*warnings\.warn" | \
         grep -v "urllib3" | \
         grep -v "pip version"
