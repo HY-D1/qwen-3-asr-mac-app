@@ -45,8 +45,16 @@ from constants import (
     BASE_DIR, C_ASR_DIR, MODEL_CONFIG, LANGUAGE_CONFIG,
     DEFAULT_LANGUAGE, DEFAULT_SILENCE_DURATION,
     LIVE_CHUNK_DURATION, LIVE_MAX_PENDING_CHUNKS, LIVE_MIN_REMAINING_SECONDS,
-    MIN_WIDTH_COMPACT, MIN_WIDTH_MOBILE, COLORS
+    MIN_WIDTH_COMPACT, MIN_WIDTH_MOBILE, COLORS, REFORMER_CONFIG
 )
+
+# Import text reformer
+try:
+    from text_reformer import TextReformer, ReformMode, BatchTextReformer
+    from text_reformer import get_reform_description, get_reform_icon
+    TEXT_REFORMER_AVAILABLE = True
+except ImportError:
+    TEXT_REFORMER_AVAILABLE = False
 
 
 # =============================================================================
@@ -178,6 +186,7 @@ class CollapsibleSidebar(tk.Frame):
         self._build_saved_file_section()
         self._build_upload_section()
         self._build_settings_section()
+        self._build_llm_section()
         
         self.config(width=self.expanded_width)
     
@@ -383,6 +392,141 @@ class CollapsibleSidebar(tk.Frame):
     def get_language_name(self) -> str:
         """Get selected language display name"""
         return self.lang_combo.get()
+    
+    def _build_llm_section(self):
+        """LLM Text Reformer section"""
+        if not TEXT_REFORMER_AVAILABLE:
+            return
+        
+        self.llm_frame = tk.LabelFrame(
+            self.content, text=" 🤖 AI Text Refiner ", 
+            bg=COLORS['card'], fg=COLORS['text'],
+            font=('SF Pro Text', 10, 'bold'),
+            padx=10, pady=10
+        )
+        self.llm_frame.pack(fill='x', pady=(10, 0))
+        self.llm_frame.configure(highlightbackground=COLORS['card_border'], highlightthickness=1)
+        
+        # Enable/Disable checkbox
+        self.llm_enabled_var = tk.BooleanVar(value=REFORMER_CONFIG["enabled"])
+        self.llm_check = tk.Checkbutton(
+            self.llm_frame, text="Enable AI refinement",
+            variable=self.llm_enabled_var,
+            font=('SF Pro Text', 9),
+            bg=COLORS['card'], fg=COLORS['text'],
+            selectcolor=COLORS['surface'],
+            activebackground=COLORS['card'],
+            command=self._on_llm_toggle
+        )
+        self.llm_check.pack(anchor='w')
+        
+        # Mode selection
+        self.llm_mode_frame = tk.Frame(self.llm_frame, bg=COLORS['card'])
+        self.llm_mode_frame.pack(fill='x', pady=(8, 0))
+        
+        tk.Label(
+            self.llm_mode_frame, text="Mode:", 
+            font=('SF Pro Text', 9),
+            bg=COLORS['card'], fg=COLORS['text_secondary']
+        ).pack(anchor='w')
+        
+        self.llm_mode_var = tk.StringVar(value=REFORMER_CONFIG["default_mode"])
+        self.llm_mode_combo = ttk.Combobox(
+            self.llm_mode_frame,
+            values=[mode[1] for mode in REFORMER_CONFIG["available_modes"]],
+            state='readonly', width=20, font=('SF Pro Text', 9)
+        )
+        self.llm_mode_combo.set(REFORMER_CONFIG["available_modes"][0][1])
+        self.llm_mode_combo.pack(fill='x', pady=(2, 0))
+        
+        # Mode description label
+        self.llm_mode_desc = tk.Label(
+            self.llm_frame, 
+            text=REFORMER_CONFIG["available_modes"][0][2],
+            font=('SF Pro Text', 8),
+            bg=COLORS['card'], fg=COLORS['text_muted'],
+            wraplength=200, justify='left'
+        )
+        self.llm_mode_desc.pack(anchor='w', pady=(4, 0))
+        
+        # Update description on mode change
+        self.llm_mode_combo.bind('<<ComboboxSelected>>', self._on_llm_mode_change)
+        
+        # Action buttons
+        self.llm_btn_frame = tk.Frame(self.llm_frame, bg=COLORS['card'])
+        self.llm_btn_frame.pack(fill='x', pady=(10, 0))
+        
+        self.reform_btn = tk.Button(
+            self.llm_btn_frame, text="✨ Reform Text",
+            font=('SF Pro Text', 9, 'bold'),
+            bg=COLORS['primary'], fg='white',
+            relief='flat', bd=0, cursor='hand2',
+            command=self.app.reform_current_text,
+            state='disabled'
+        )
+        self.reform_btn.pack(fill='x', pady=(0, 5))
+        
+        self.analyze_btn = tk.Button(
+            self.llm_btn_frame, text="📊 Analyze",
+            font=('SF Pro Text', 9),
+            bg=COLORS['surface'], fg=COLORS['text_secondary'],
+            relief='flat', bd=0, cursor='hand2',
+            command=self.app.analyze_current_text,
+            state='disabled'
+        )
+        self.analyze_btn.pack(fill='x')
+        
+        # Status label
+        self.llm_status = tk.Label(
+            self.llm_frame, text="LLM: Not loaded",
+            font=('SF Pro Mono', 8),
+            bg=COLORS['card'], fg=COLORS['text_muted']
+        )
+        self.llm_status.pack(anchor='w', pady=(8, 0))
+        
+        # Initially disable controls if not enabled
+        if not self.llm_enabled_var.get():
+            self._set_llm_controls_state('disabled')
+    
+    def _on_llm_toggle(self):
+        """Handle LLM enable/disable toggle"""
+        enabled = self.llm_enabled_var.get()
+        if enabled:
+            self._set_llm_controls_state('normal')
+            self.llm_status.config(text="LLM: Loading...", fg=COLORS['warning'])
+            # Trigger model load in background
+            self.app.load_reformer_model()
+        else:
+            self._set_llm_controls_state('disabled')
+            self.llm_status.config(text="LLM: Disabled", fg=COLORS['text_muted'])
+            self.app.unload_reformer_model()
+    
+    def _on_llm_mode_change(self, event=None):
+        """Update mode description when selection changes"""
+        selected = self.llm_mode_combo.get()
+        for mode in REFORMER_CONFIG["available_modes"]:
+            if mode[1] == selected:
+                self.llm_mode_desc.config(text=mode[2])
+                break
+    
+    def _set_llm_controls_state(self, state: str):
+        """Enable/disable LLM control widgets"""
+        self.llm_mode_combo.config(state='readonly' if state == 'normal' else 'disabled')
+        self.reform_btn.config(state=state)
+        self.analyze_btn.config(state=state)
+    
+    def get_llm_mode(self) -> str:
+        """Get selected LLM reform mode"""
+        selected = self.llm_mode_combo.get()
+        for mode in REFORMER_CONFIG["available_modes"]:
+            if mode[1] == selected:
+                return mode[0]
+        return "punctuate"
+    
+    def update_llm_status(self, text: str, color: str = None):
+        """Update LLM status label"""
+        if hasattr(self, 'llm_status'):
+            self.llm_status.config(text=text, fg=color or COLORS['text_muted'])
     
     def toggle_sidebar(self):
         """Toggle between expanded and compact modes"""
@@ -1247,6 +1391,13 @@ class QwenASRApp:
         self.live_transcript = ""
         self.current_raw_file = None
         self.status_queue = queue.Queue()
+        self.reformer_queue = queue.Queue()
+        
+        # LLM Reformer state
+        self.text_reformer: Optional[TextReformer] = None
+        self.last_transcript = ""
+        self.reformed_text = ""
+        self.correlation_data = None
         
         # Initialize components
         try:
@@ -1265,6 +1416,7 @@ class QwenASRApp:
         # Build UI
         self.setup_ui()
         self.check_status()
+        self.check_reformer_status()
     
     # =====================================================================
     # UI Setup & Layout
@@ -1352,6 +1504,7 @@ class QwenASRApp:
         self.text_area.tag_config("meta", foreground=COLORS['text_muted'])
         self.text_area.tag_config("title", foreground=COLORS['primary'], font=('SF Pro Display', 14, 'bold'))
         self.text_area.tag_config("detected", foreground=COLORS['success'], font=('SF Pro Text', 10))
+        self.text_area.tag_config("success", foreground=COLORS['success'], font=('SF Pro Text', 10, 'bold'))
         
         # Welcome message
         self._show_welcome_message()
@@ -1369,8 +1522,10 @@ class QwenASRApp:
         self.text_area.insert(tk.END, "• Live mode: 0.6B model (low latency)\n")
         self.text_area.insert(tk.END, "• Upload mode: 1.7B model (best accuracy)\n")
         self.text_area.insert(tk.END, "• Auto language detection (50+ languages)\n")
-        self.text_area.insert(tk.END, "• Raw audio auto-saved\n\n")
-        self.text_area.insert(tk.END, f"Recordings saved to:\n{RECORDINGS_DIR}", "meta")
+        self.text_area.insert(tk.END, "• Raw audio auto-saved\n")
+        if TEXT_REFORMER_AVAILABLE:
+            self.text_area.insert(tk.END, "• 🤖 AI text refinement (Qwen2.5-3B)\n")
+        self.text_area.insert(tk.END, f"\nRecordings saved to:\n{RECORDINGS_DIR}", "meta")
     
     def on_window_resize(self, event):
         """Handle window resize"""
@@ -1756,7 +1911,7 @@ class QwenASRApp:
         lines = text.split('\n')
         clean_lines = []
         for line in lines:
-            if not any(line.startswith(p) for p in ['Backend:', 'RTF:', '─', '🎓', '✅', '⏳', '📁', '🌐', '📝']):
+            if not any(line.startswith(p) for p in ['Backend:', 'RTF:', '─', '🎓', '✅', '⏳', '📁', '🌐', '📝', '🤖', '✨', '📊']):
                 clean_lines.append(line)
         clean_text = '\n'.join(clean_lines).strip()
         
@@ -1769,6 +1924,203 @@ class QwenASRApp:
                 with open(path, 'w', encoding='utf-8') as f:
                     f.write(clean_text)
                 self.stats_label.config(text="Saved!", fg=COLORS['success'])
+    
+    # =====================================================================
+    # LLM Text Reformer Integration
+    # =====================================================================
+    
+    def load_reformer_model(self):
+        """Load the LLM text reformer model in background"""
+        if not TEXT_REFORMER_AVAILABLE:
+            return
+        
+        def worker():
+            try:
+                if not self.text_reformer:
+                    self.text_reformer = TextReformer(
+                        progress_callback=lambda x: self.reformer_queue.put(('progress', x))
+                    )
+                
+                success = self.text_reformer.load_model()
+                if success:
+                    self.reformer_queue.put(('loaded', 'LLM ready'))
+                else:
+                    self.reformer_queue.put(('error', 'Failed to load LLM'))
+            except Exception as e:
+                self.reformer_queue.put(('error', str(e)))
+        
+        threading.Thread(target=worker, daemon=True).start()
+    
+    def unload_reformer_model(self):
+        """Unload the LLM model to free memory"""
+        if self.text_reformer:
+            self.text_reformer.unload_model()
+            self.text_reformer = None
+    
+    def check_reformer_status(self):
+        """Check reformer status queue"""
+        if not TEXT_REFORMER_AVAILABLE:
+            return
+        
+        try:
+            while True:
+                msg_type, data = self.reformer_queue.get_nowait()
+                
+                if msg_type == 'progress':
+                    self.sidebar.update_llm_status(f"LLM: {data}", COLORS['warning'])
+                elif msg_type == 'loaded':
+                    self.sidebar.update_llm_status("✅ LLM Ready", COLORS['success'])
+                elif msg_type == 'error':
+                    self.sidebar.update_llm_status(f"❌ {data}", COLORS['error'])
+                elif msg_type == 'reform_complete':
+                    self._show_reformed_text(data)
+                elif msg_type == 'analysis_complete':
+                    self._show_analysis_results(data)
+        except queue.Empty:
+            pass
+        
+        self.root.after(100, self.check_reformer_status)
+    
+    def reform_current_text(self):
+        """Reform the current transcript text"""
+        if not TEXT_REFORMER_AVAILABLE or not self.text_reformer:
+            messagebox.showwarning("LLM Not Available", 
+                "Text reformer is not available. Please enable it in the sidebar.")
+            return
+        
+        # Get current text
+        text = self._get_clean_transcript_text()
+        if not text:
+            messagebox.showinfo("No Text", "No transcript text to reform.")
+            return
+        
+        self.last_transcript = text
+        mode_str = self.sidebar.get_llm_mode()
+        mode = ReformMode(mode_str)
+        
+        # Show processing state
+        self.sidebar.update_llm_status("🔄 Reforming...", COLORS['warning'])
+        self.sidebar.reform_btn.config(state='disabled')
+        
+        def worker():
+            try:
+                result = self.text_reformer.reform(text, mode)
+                self.reformer_queue.put(('reform_complete', result))
+            except Exception as e:
+                self.reformer_queue.put(('error', str(e)))
+        
+        threading.Thread(target=worker, daemon=True).start()
+    
+    def analyze_current_text(self):
+        """Analyze the current transcript for correlations"""
+        if not TEXT_REFORMER_AVAILABLE or not self.text_reformer:
+            messagebox.showwarning("LLM Not Available", 
+                "Text reformer is not available. Please enable it in the sidebar.")
+            return
+        
+        text = self._get_clean_transcript_text()
+        if not text:
+            messagebox.showinfo("No Text", "No transcript text to analyze.")
+            return
+        
+        self.last_transcript = text
+        
+        # Show processing state
+        self.sidebar.update_llm_status("🔄 Analyzing...", COLORS['warning'])
+        self.sidebar.analyze_btn.config(state='disabled')
+        
+        def worker():
+            try:
+                result = self.text_reformer.analyze_correlations(text)
+                self.reformer_queue.put(('analysis_complete', result))
+            except Exception as e:
+                self.reformer_queue.put(('error', str(e)))
+        
+        threading.Thread(target=worker, daemon=True).start()
+    
+    def _get_clean_transcript_text(self) -> str:
+        """Extract clean transcript text from text area"""
+        text = self.text_area.get('1.0', tk.END).strip()
+        lines = text.split('\n')
+        clean_lines = []
+        
+        # Skip header/metadata lines
+        header_prefixes = [
+            'Backend:', 'RTF:', '─', '🎓', '✅', '⏳', '📁', '🌐', '📝',
+            '🤖', '✨', '📊', 'Original:', 'Reformed:', 'Summary:', 'Topics:',
+            'Sentiment:', 'Keywords:', 'Entities:', '===', '---'
+        ]
+        
+        for line in lines:
+            stripped = line.strip()
+            if stripped and not any(stripped.startswith(p) for p in header_prefixes):
+                clean_lines.append(line)
+        
+        return '\n'.join(clean_lines).strip()
+    
+    def _show_reformed_text(self, result):
+        """Display reformed text in the text area"""
+        self.sidebar.reform_btn.config(state='normal')
+        self.sidebar.update_llm_status("✅ Reform complete", COLORS['success'])
+        
+        self.reformed_text = result.reformed_text
+        
+        # Create display with both original and reformed
+        self.text_area.delete('1.0', tk.END)
+        self.text_area.insert('1.0', "🤖 AI Text Reform\n", "title")
+        self.text_area.insert(tk.END, f"Mode: {result.mode.value}\n", "meta")
+        self.text_area.insert(tk.END, f"Processing time: {result.processing_time:.2f}s\n", "meta")
+        self.text_area.insert(tk.END, "─" * 50 + "\n\n", "meta")
+        
+        self.text_area.insert(tk.END, "✨ REFORMED TEXT:\n\n", "success")
+        self.text_area.insert(tk.END, result.reformed_text + "\n\n")
+        
+        self.text_area.insert(tk.END, "─" * 50 + "\n\n", "meta")
+        self.text_area.insert(tk.END, "📝 ORIGINAL TEXT:\n\n", "meta")
+        self.text_area.insert(tk.END, result.original_text)
+    
+    def _show_analysis_results(self, result):
+        """Display correlation analysis results"""
+        self.sidebar.analyze_btn.config(state='normal')
+        self.sidebar.update_llm_status("✅ Analysis complete", COLORS['success'])
+        
+        self.correlation_data = result
+        
+        self.text_area.delete('1.0', tk.END)
+        self.text_area.insert('1.0', "📊 Text Analysis\n", "title")
+        self.text_area.insert(tk.END, "─" * 50 + "\n\n", "meta")
+        
+        # Summary
+        if result.summary:
+            self.text_area.insert(tk.END, "📝 Summary:\n", "success")
+            self.text_area.insert(tk.END, result.summary + "\n\n")
+        
+        # Topics
+        if result.topics:
+            self.text_area.insert(tk.END, "📌 Topics:\n", "success")
+            for topic in result.topics:
+                self.text_area.insert(tk.END, f"  • {topic}\n")
+            self.text_area.insert(tk.END, "\n")
+        
+        # Sentiment
+        sentiment_emoji = {"positive": "😊", "negative": "😔", "neutral": "😐"}
+        emoji = sentiment_emoji.get(result.sentiment, "😐")
+        self.text_area.insert(tk.END, f"{emoji} Sentiment: ", "success")
+        self.text_area.insert(tk.END, f"{result.sentiment.title()} ({result.sentiment_score:.2f})\n\n")
+        
+        # Keywords
+        if result.keywords:
+            self.text_area.insert(tk.END, "🔑 Keywords:\n", "success")
+            self.text_area.insert(tk.END, ", ".join(result.keywords[:10]) + "\n\n")
+        
+        # Entities
+        if result.entities:
+            self.text_area.insert(tk.END, "👥 Key Entities:\n", "success")
+            for entity in result.entities[:10]:
+                name = entity.get('name', 'Unknown')
+                type_ = entity.get('type', 'Unknown')
+                mentions = entity.get('mentions', 0)
+                self.text_area.insert(tk.END, f"  • {name} ({type_}) - {mentions} mentions\n")
 
 
 # =============================================================================

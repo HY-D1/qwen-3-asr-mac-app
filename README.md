@@ -1,14 +1,16 @@
 # 🎙️ Qwen3-ASR Pro
 
-A professional speech-to-text application for macOS with real-time streaming transcription and responsive UI.
+A professional speech-to-text application for macOS with real-time streaming transcription, AI-powered text refinement, and responsive UI.
 
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
 ![Architecture](https://img.shields.io/badge/arch-Apple%20Silicon%20%7C%20Intel-blue)
 ![Backend](https://img.shields.io/badge/backend-MLX%20%7C%20PyTorch-green)
+![LLM](https://img.shields.io/badge/LLM-Qwen2.5--3B-purple)
 
 ## ✨ Features
 
 - **🎓 Live Class Mode** - Real-time transcription with text appearing as you speak
+- **🤖 AI Text Refinement** - LLM-powered text reformation and analysis (8GB RAM compatible)
 - **⚡ Fast Mode** - Optimized batch processing for quick recordings
 - **📁 Auto-Save** - Raw audio automatically saved for later review
 - **📱 Responsive UI** - Adapts to any window size (desktop/compact/mobile)
@@ -80,6 +82,33 @@ The UI automatically adapts to your window size:
 ```
 - Faster processing (0.02x RTF vs 0.46x)
 - Best for quick voice memos
+
+## 🤖 AI Text Refinement
+
+Qwen3-ASR Pro includes an optional LLM-powered text refinement feature using **Qwen2.5-3B-Instruct** - optimized for 8GB RAM systems.
+
+### Features
+- **✨ Punctuate** - Add proper punctuation and capitalization
+- **📄 Paragraph** - Structure text into readable paragraphs
+- **📋 Summarize** - Create concise summaries
+- **🔑 Key Points** - Extract important bullet points
+- **📑 Meeting Notes** - Format as structured meeting notes
+- **✨ Clean Up** - Remove filler words (um, uh, like)
+
+### Analysis Tools
+- **📊 Topic Extraction** - Identify main discussion topics
+- **😊 Sentiment Analysis** - Detect positive/negative tone
+- **🔑 Keyword Detection** - Find important keywords
+- **👥 Entity Recognition** - Extract people, organizations, locations
+
+### Requirements
+```bash
+# Install LLM dependencies (optional)
+pip install mlx-lm          # For Apple Silicon (recommended)
+pip install llama-cpp-python # For Intel Macs
+```
+
+The 3B parameter model (~2GB download) runs efficiently on 8GB RAM systems with MLX acceleration on Apple Silicon.
 
 ## 🎛️ Settings
 

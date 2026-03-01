@@ -1,7 +1,7 @@
 """
 Qwen3-ASR Pro - macOS Speech-to-Text Application
 
-Version: 3.2.0
+Version: 3.3.0
 
 Features:
 - Live streaming transcription (0.6B model)
@@ -10,6 +10,6 @@ Features:
 - Responsive UI with adaptive layout
 """
 
-__version__ = "3.2.0"
+__version__ = "3.3.0"
 __author__ = "HY-D1"
 __license__ = "MIT"

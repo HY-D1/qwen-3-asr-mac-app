@@ -7,7 +7,7 @@ import os
 
 # App Info
 APP_NAME = "Qwen3-ASR Pro"
-VERSION = "3.2.0"
+VERSION = "3.3.0"
 
 # Audio Settings
 SAMPLE_RATE = 16000
@@ -118,6 +118,35 @@ LANGUAGE_CONFIG = {
 # Default settings
 DEFAULT_LANGUAGE = "Auto"
 DEFAULT_SILENCE_DURATION = 30.0  # seconds
+
+# LLM Text Reformer Settings
+REFORMER_CONFIG = {
+    "enabled": False,  # Disabled by default (user must opt-in)
+    "default_mode": "punctuate",
+    "auto_reform": False,  # Auto-reform after transcription
+    "available_modes": [
+        ("punctuate", "📝 Punctuate", "Add proper punctuation and capitalization"),
+        ("paragraph", "📄 Paragraph", "Structure into readable paragraphs"),
+        ("summarize", "📋 Summarize", "Create concise summary"),
+        ("key_points", "🔑 Key Points", "Extract key points as bullets"),
+        ("format", "📑 Meeting Notes", "Format as structured meeting notes"),
+        ("clean", "✨ Clean Up", "Remove filler words and hesitations"),
+    ],
+    "target_languages": {
+        "en": "English",
+        "zh": "Chinese (Simplified)",
+        "zh-TW": "Chinese (Traditional)",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "es": "Spanish",
+        "fr": "French",
+        "de": "German",
+        "it": "Italian",
+        "pt": "Portuguese",
+        "ru": "Russian",
+        "ar": "Arabic",
+    }
+}
 
 # Live Streaming Settings
 LIVE_CHUNK_DURATION = 5.0  # Process 5-second chunks

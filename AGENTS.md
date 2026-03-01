@@ -2,31 +2,33 @@
 
 ## Project Overview
 
-**Qwen3-ASR Pro** is a professional speech-to-text application for macOS with real-time streaming transcription and a responsive Tkinter-based UI. It supports both Apple Silicon (MLX acceleration) and Intel Macs (PyTorch backend).
+**Qwen3-ASR Pro** is a professional speech-to-text application for macOS with real-time streaming transcription, AI-powered text refinement, and a responsive Tkinter-based UI. It supports both Apple Silicon (MLX acceleration) and Intel Macs (PyTorch backend).
 
-- **Version:** 3.1.1
+- **Version:** 3.3.0
 - **License:** MIT (Copyright 2026 HY-D1)
 - **Language:** English (documentation and comments)
 - **Platform:** macOS only (Darwin)
 
 ### Key Features
-- **🎓 Live Class Mode** - Real-time transcription with word-by-word output (~2s delay)
-- **⚡ Fast Mode** - Optimized batch processing for quick recordings
+- **🎓 Live Mode** - Real-time transcription with word-by-word output (~2s delay)
+- **🤖 AI Text Refinement** - LLM-powered text reformation using Qwen2.5-3B (8GB RAM compatible)
+- **📁 Upload Mode** - Batch processing for file uploads with 1.7B model
 - **📁 Auto-Save** - Raw audio automatically saved to `~/Documents/Qwen3-ASR-Recordings/`
 - **📱 Responsive UI** - Adapts to any window size (desktop/compact/mobile)
 - **🎚️ Smart Silence Detection** - Adjustable auto-stop (0.5s - 60s)
 - **⚡ MLX Acceleration** - Optimized for Apple Silicon (M1/M2/M3/M4)
-- **🌍 Multi-language** - Supports 50+ languages
+- **🌍 Multi-language** - Supports 50+ languages with auto-detection
 
 ## Project Structure
 
 ```
 qwen-3-asr-mac-app-main/
 ├── src/                       # Python source code
-│   ├── __init__.py           # Package init, version 3.1.1
+│   ├── __init__.py           # Package init, version 3.3.0
 │   ├── main.py               # Entry point
-│   ├── app.py                # Main application (~1600 lines)
+│   ├── app.py                # Main application (~2000 lines)
 │   ├── constants.py          # Colors, settings, paths
+│   ├── text_reformer.py      # LLM text refinement engine
 │   ├── core/                 # (empty - reserved)
 │   └── ui/                   # (empty - reserved)
 ├── scripts/                   # Shell scripts
@@ -184,7 +186,7 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
 | `test_file_io.py` | File operations | Save/load, formats |
 | `test_macos_compat.py` | macOS specific | Permissions, paths |
 | `test_recording_vad.py` | Audio VAD | Silence detection |
-| `test_batch_mode.py` | Batch processing | Fast mode |
+| `test_batch_mode.py` | Batch processing | Upload mode |
 | `test_user_workflows.py` | User scenarios | Complete workflows |
 
 ### Test Reports
@@ -199,13 +201,15 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
 1. **`QwenASRApp`** - Main application controller
    - UI setup and layout management
    - Recording control (start/stop)
-   - Mode switching (live/batch)
+   - File upload processing
+   - LLM reformer integration
    - Event handling
 
 2. **`CollapsibleSidebar`** - Settings sidebar
    - Recording controls
-   - Model/language selection
+   - Language selection
    - Silence duration settings
+   - LLM reformer controls (enable/disable, mode selection)
    - Collapsible (260px expanded, 60px compact)
 
 3. **`SlideOutPanel`** - Mobile settings panel
@@ -228,19 +232,46 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
    - Auto-stop on silence
    - Real-time level callback
 
-7. **`TranscriptionEngine`** - Batch transcription
+7. **`TranscriptionEngine`** - Upload transcription
    - Auto-detects backend (MLX/PyTorch)
-   - Model caching
+   - Always uses 1.7B model for best accuracy
    - Progress callbacks
 
 8. **`WaveformVisualizer`** - Audio level display
    - 40-bar history
    - Color-coded levels (green/yellow/red)
 
+### Text Reformer Module (`src/text_reformer.py`)
+
+#### Classes
+1. **`TextReformer`** - LLM-based text reformation engine
+   - Uses Qwen2.5-3B-Instruct model (~2GB)
+   - Supports MLX (Apple Silicon) and llama.cpp (Intel) backends
+   - 8GB RAM compatible
+   - Methods:
+     - `reform(text, mode)` - Reform text (punctuate, summarize, etc.)
+     - `analyze_correlations(text)` - Extract topics, entities, sentiment
+     - `compare_transcripts(transcripts)` - Compare multiple transcripts
+
+2. **`BatchTextReformer`** - Batch processing
+   - Process multiple texts with progress tracking
+   - Thread-safe queue-based communication
+
+3. **`ReformMode`** (Enum) - Reformation modes
+   - `PUNCTUATE` - Add punctuation and capitalization
+   - `PARAGRAPH` - Structure into paragraphs
+   - `SUMMARIZE` - Create summary
+   - `KEY_POINTS` - Extract key points
+   - `FORMAT` - Format as meeting notes
+   - `CLEAN` - Remove filler words
+
+4. **`ReformResult`** - Reformation result dataclass
+5. **`CorrelationResult`** - Analysis result dataclass
+
 #### Key Constants (`src/constants.py`)
 ```python
 APP_NAME = "Qwen3-ASR Pro"
-VERSION = "3.1.1"
+VERSION = "3.3.0"
 SAMPLE_RATE = 16000
 CHUNK_DURATION = 0.05
 MIN_WIDTH_COMPACT = 750  # px
@@ -256,9 +287,9 @@ COLORS = { ... }  # 17-color light theme
 | Compact | 550-750px | Collapsed sidebar (60px) |
 | Mobile | < 550px | Bottom bar + slide-out panel |
 
-### Recording Modes
+### Processing Modes
 
-#### Live Mode (🎓 Live Class)
+#### Live Mode (🎓 Live)
 ```
 Microphone → [5s chunks] → C binary (qwen_asr) → Live text + Raw file
 ```
@@ -266,13 +297,13 @@ Microphone → [5s chunks] → C binary (qwen_asr) → Live text + Raw file
 - Word-by-word output
 - Raw audio saved to `~/Documents/Qwen3-ASR-Recordings/`
 
-#### Fast Mode (⚡ Fast)
+#### Upload Mode (📁 File Upload)
 ```
-Microphone → [Save] → MLX/PyTorch → Text
+Audio file → MLX/PyTorch (1.7B) → Text
 ```
-- User-selected model (0.6B or 1.7B)
-- Faster processing (lower RTF)
-- Best for quick voice memos
+- Always uses 1.7B model for best accuracy
+- Supports WAV, MP3, M4A, FLAC, OGG, AAC
+- Batch processing with progress
 
 ## Development Conventions
 
@@ -369,9 +400,9 @@ except Exception as e:
 
 | Model | Mode | Target RTF | Notes |
 |-------|------|------------|-------|
-| 0.6B | Fast | ~0.02x | Batch processing |
-| 1.7B | Fast | ~0.03x | Batch processing |
-| 0.6B | Streaming | < 1.0x | Live mode |
+| 0.6B | Upload | ~0.02x | Batch processing |
+| 1.7B | Upload | ~0.03x | Batch processing |
+| 0.6B | Streaming | < 3.0x | Live mode (includes overhead) |
 
 *RTF (Real-Time Factor) < 1.0 means faster than real-time*
 
@@ -384,7 +415,13 @@ except Exception as e:
 
 ### User Data
 - Recordings: `~/Documents/Qwen3-ASR-Recordings/`
-- Naming: `class_YYYYMMDD_HHMMSS.wav`
+- Naming: `live_YYYYMMDD_HHMMSS.wav`
+
+## Version History
+
+- **3.3.0** - Current: AI Text Refinement with Qwen2.5-3B LLM integration
+- **3.2.0** - Simplified UI, auto language detection, model optimization
+- **3.1.1** - Dual mode (Live/Fast), manual model selection
 
 ## References
 
