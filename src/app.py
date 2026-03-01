@@ -563,13 +563,14 @@ class LiveStreamer:
         self.current_audio_file = None
         self.output_callback = None
         self.status_callback = None
+        self.language = "English"  # Default language
         self.audio_buffer = []
         self.buffer_lock = threading.Lock()
         self._pending_chunks = 0
         # Use a thread pool with single worker to serialize chunk processing
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         
-    def start(self, output_callback=None, status_callback=None):
+    def start(self, output_callback=None, status_callback=None, language="English"):
         """Start live streaming transcription"""
         self.is_running = True
         self.raw_frames = []
@@ -577,6 +578,7 @@ class LiveStreamer:
         self.transcript_buffer = ""
         self.output_callback = output_callback
         self.status_callback = status_callback
+        self.language = language if language != "Auto" else "English"
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         os.makedirs(RECORDINGS_DIR, exist_ok=True)
@@ -641,7 +643,7 @@ class LiveStreamer:
                 self.binary_path,
                 "-d", self.model_dir,
                 "-i", temp_file,
-                "--language", "English"
+                "--language", self.language
             ]
             
             result = subprocess.run(
@@ -741,7 +743,7 @@ class LiveStreamer:
                 self.binary_path,
                 "-d", self.model_dir,
                 "-i", temp_file,
-                "--language", "English"
+                "--language", self.language
             ]
             
             result = subprocess.run(cmd, capture_output=True, timeout=30)
@@ -1312,9 +1314,13 @@ class QwenASRApp:
         model_name = "qwen3-asr-0.6b"
         self.live_streamer.model_dir = os.path.join(self.base_dir, "assets", "c-asr", model_name)
         
+        # Get language from sidebar
+        language = self.sidebar.lang_combo.get()
+        
         raw_file = self.live_streamer.start(
             output_callback=self.on_live_transcript,
-            status_callback=self.on_live_status
+            status_callback=self.on_live_status,
+            language=language
         )
         self.current_raw_file = raw_file
         

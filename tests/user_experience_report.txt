@@ -1,0 +1,407 @@
+================================================================================
+Qwen3-ASR Pro - End-to-End User Experience Test Report
+================================================================================
+Generated: 2026-02-28 16:39:28
+Total Test Duration: 0.5s
+
+EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+  Workflows Passed: 29/29
+  Workflows Failed: 0/29
+  Success Rate: 100.0%
+
+WORKFLOW DETAILS
+--------------------------------------------------------------------------------
+
+✅ PASS Student Recording Lecture
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Configure Live Mode: 0.00s
+  Metrics:
+    • silence_preset_applied: True
+    • model_selected: 1.7B (Accurate)
+
+✅ PASS Student Recording Lecture
+  Total Duration: 0.07s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Recording: 0.07s
+  Metrics:
+    • recording_duration: 5.0
+    • file_saved: True
+
+✅ PASS Student Recording Lecture
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Process Transcript: 0.00s
+  Metrics:
+    • transcript_length: 513
+    • transcript_saved: True
+
+✅ PASS Student Recording Lecture
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Copy to Clipboard: 0.00s
+  Metrics:
+    • clipboard_copied: True
+
+✅ PASS Student Recording Lecture
+  Total Duration: 0.01s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Export as TXT: 0.01s
+  Metrics:
+    • export_successful: True
+
+✅ PASS Student Recording Lecture
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+
+✅ PASS Journalist Interview
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Setup Accurate Mode: 0.00s
+  Metrics:
+    • model: 1.7B (Accurate)
+    • mode: batch
+
+✅ PASS Journalist Interview
+  Total Duration: 0.01s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Create Interview Files: 0.01s
+  Metrics:
+    • files_created: 3
+    • total_duration: 10.0
+
+✅ PASS Journalist Interview
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Upload Files: 0.00s
+  Metrics:
+    • files_uploaded: 0
+
+✅ PASS Journalist Interview
+  Total Duration: 0.32s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Process Sequentially: 0.31s
+    • Create Interview Files: 0.01s
+  Metrics:
+    • files_created: 3
+    • total_duration: 10.0
+    • files_processed: 3
+    • avg_process_time: 0.10212930043538411
+    • total_process_time: 0.30638790130615234
+
+✅ PASS Journalist Interview
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Review Transcripts: 0.00s
+  Metrics:
+    • transcript_compiled: True
+    • compiled_length: 105
+
+✅ PASS Quick Voice Memo
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Configure Fast Mode: 0.00s
+  Metrics:
+    • fast_mode_enabled: True
+    • silence_threshold: 0.8
+
+✅ PASS Quick Voice Memo
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Quick Record: 0.00s
+  Metrics:
+    • record_time: 0.0014240741729736328
+    • audio_duration: 2.0
+
+✅ PASS Quick Voice Memo
+  Total Duration: 0.05s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Immediate Transcription: 0.05s
+  Metrics:
+    • transcription_time: 0.05207395553588867
+    • real_time_factor: 0.026036977767944336
+
+✅ PASS Quick Voice Memo
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Clear and Re-record: 0.00s
+  Metrics:
+    • re_recorded: True
+    • memo_count: 1
+
+✅ PASS Multilingual User
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Switch to Spanish: 0.00s
+  Metrics:
+    • language_changed: True
+    • new_language: Spanish
+
+✅ PASS Multilingual User
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Record Spanish Audio: 0.00s
+  Metrics:
+    • spanish_recorded: True
+
+✅ PASS Multilingual User
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Verify Language Persistence: 0.00s
+  Metrics:
+    • language_persisted: True
+    • settings_history_count: 1
+
+✅ PASS Multilingual User
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Switch Back to English: 0.00s
+  Metrics:
+    • switched_back: True
+    • final_language: English
+
+✅ PASS UI Navigation
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Initial Desktop Layout: 0.00s
+  Metrics:
+    • initial_layout: desktop
+    • initial_width: 1100
+
+✅ PASS UI Navigation
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Resize to Mobile: 0.00s
+  Metrics:
+    • mobile_layout_working: True
+    • mobile_width: 500
+
+✅ PASS UI Navigation
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Resize to Compact: 0.00s
+  Metrics:
+    • compact_layout_working: True
+    • compact_width: 650
+
+✅ PASS UI Navigation
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Resize to Desktop: 0.00s
+  Metrics:
+    • desktop_layout_working: True
+    • desktop_width: 900
+
+✅ PASS UI Navigation
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Test Button States: 0.00s
+  Metrics:
+    • button_tests_passed: 4
+    • all_buttons_functional: True
+
+✅ PASS Error Recovery
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Start Recording: 0.00s
+
+✅ PASS Error Recovery
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Simulate Crash: 0.00s
+  Metrics:
+    • crash_simulated: True
+    • crash_detected: True
+
+✅ PASS Error Recovery
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Verify No Freeze: 0.00s
+  Metrics:
+    • response_time_ms: 0.0016689300537109375
+    • app_responsive: True
+
+✅ PASS Error Recovery
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+    • Recovery and Restart: 0.00s
+  Metrics:
+    • recovery_time_ms: 0.9219646453857422
+    • recovery_successful: True
+    • recordings_after_recovery: 2
+
+✅ PASS Error Recovery
+  Total Duration: 0.00s
+  State Consistent: Yes
+  Data Loss: No
+  Stage Timings:
+
+USER EXPERIENCE ANALYSIS
+--------------------------------------------------------------------------------
+  Average Workflow Time: 0.02s
+  Fastest Workflow: 0.00s
+  Slowest Workflow: 0.32s
+
+  ✅ No errors detected
+
+SCENARIO-SPECIFIC FINDINGS
+--------------------------------------------------------------------------------
+
+Student Recording Lecture:
+  ✅ Lecture recording workflow functional
+  ✅ Class silence preset (30s) works correctly
+
+Student Recording Lecture:
+  ✅ Lecture recording workflow functional
+
+Student Recording Lecture:
+  ✅ Lecture recording workflow functional
+
+Student Recording Lecture:
+  ✅ Lecture recording workflow functional
+
+Student Recording Lecture:
+  ✅ Lecture recording workflow functional
+
+Student Recording Lecture:
+  ✅ Lecture recording workflow functional
+
+Journalist Interview:
+  ✅ Batch processing workflow functional
+
+Journalist Interview:
+  ✅ Batch processing workflow functional
+
+Journalist Interview:
+  ✅ Batch processing workflow functional
+
+Journalist Interview:
+  ✅ Batch processing workflow functional
+  ✅ Processed 3 files
+
+Journalist Interview:
+  ✅ Batch processing workflow functional
+
+Quick Voice Memo:
+  ✅ Quick memo workflow is responsive
+  ✅ Fast silence preset (0.8s) responsive
+
+Quick Voice Memo:
+  ✅ Quick memo workflow is responsive
+
+Quick Voice Memo:
+  ✅ Quick memo workflow is responsive
+
+Quick Voice Memo:
+  ✅ Quick memo workflow is responsive
+
+Multilingual User:
+  ✅ Language switching works
+
+Multilingual User:
+  ✅ Language switching works
+
+Multilingual User:
+  ✅ Language switching works
+  ✅ Settings persistence verified
+
+Multilingual User:
+  ✅ Language switching works
+
+UI Navigation:
+  ✅ Responsive layout working
+
+UI Navigation:
+  ✅ Responsive layout working
+  ✅ Mobile layout (<550px) functional
+
+UI Navigation:
+  ✅ Responsive layout working
+
+UI Navigation:
+  ✅ Responsive layout working
+  ✅ Desktop layout functional
+
+UI Navigation:
+  ✅ Responsive layout working
+
+Error Recovery:
+  ✅ Graceful error recovery working
+
+Error Recovery:
+  ✅ Graceful error recovery working
+
+Error Recovery:
+  ✅ Graceful error recovery working
+
+Error Recovery:
+  ✅ Graceful error recovery working
+  ✅ Recovery time: 0.9219646453857422ms
+
+Error Recovery:
+  ✅ Graceful error recovery working
+
+RECOMMENDATIONS
+--------------------------------------------------------------------------------
+  ✅ No recommendations - all workflows performing well
+
+================================================================================
+End of User Experience Report
+================================================================================

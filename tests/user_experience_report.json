@@ -1,0 +1,517 @@
+{
+  "timestamp": "2026-02-28T16:39:28.130206",
+  "workflows": [
+    {
+      "workflow_name": "Student Recording Lecture",
+      "success": true,
+      "total_duration": 1.621246337890625e-05,
+      "stages": [
+        {
+          "stage": "Configure Live Mode",
+          "duration": 1.621246337890625e-05
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "silence_preset_applied": true,
+        "model_selected": "1.7B (Accurate)"
+      }
+    },
+    {
+      "workflow_name": "Student Recording Lecture",
+      "success": true,
+      "total_duration": 0.06640100479125977,
+      "stages": [
+        {
+          "stage": "Recording",
+          "duration": 0.06640100479125977
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "recording_duration": 5.0,
+        "file_saved": true
+      }
+    },
+    {
+      "workflow_name": "Student Recording Lecture",
+      "success": true,
+      "total_duration": 0.00019311904907226562,
+      "stages": [
+        {
+          "stage": "Process Transcript",
+          "duration": 0.00019311904907226562
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "transcript_length": 513,
+        "transcript_saved": true
+      }
+    },
+    {
+      "workflow_name": "Student Recording Lecture",
+      "success": true,
+      "total_duration": 5.9604644775390625e-06,
+      "stages": [
+        {
+          "stage": "Copy to Clipboard",
+          "duration": 5.9604644775390625e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "clipboard_copied": true
+      }
+    },
+    {
+      "workflow_name": "Student Recording Lecture",
+      "success": true,
+      "total_duration": 0.008868932723999023,
+      "stages": [
+        {
+          "stage": "Export as TXT",
+          "duration": 0.008868932723999023
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "export_successful": true
+      }
+    },
+    {
+      "workflow_name": "Student Recording Lecture",
+      "success": true,
+      "total_duration": 0.0,
+      "stages": [],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {}
+    },
+    {
+      "workflow_name": "Journalist Interview",
+      "success": true,
+      "total_duration": 9.298324584960938e-06,
+      "stages": [
+        {
+          "stage": "Setup Accurate Mode",
+          "duration": 9.298324584960938e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "model": "1.7B (Accurate)",
+        "mode": "batch"
+      }
+    },
+    {
+      "workflow_name": "Journalist Interview",
+      "success": true,
+      "total_duration": 0.013280153274536133,
+      "stages": [
+        {
+          "stage": "Create Interview Files",
+          "duration": 0.013280153274536133
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "files_created": 3,
+        "total_duration": 10.0
+      }
+    },
+    {
+      "workflow_name": "Journalist Interview",
+      "success": true,
+      "total_duration": 5.9604644775390625e-06,
+      "stages": [
+        {
+          "stage": "Upload Files",
+          "duration": 5.9604644775390625e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "files_uploaded": 0
+      }
+    },
+    {
+      "workflow_name": "Journalist Interview",
+      "success": true,
+      "total_duration": 0.3221151828765869,
+      "stages": [
+        {
+          "stage": "Process Sequentially",
+          "duration": 0.3142850399017334
+        },
+        {
+          "stage": "Create Interview Files",
+          "duration": 0.007830142974853516
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "files_created": 3,
+        "total_duration": 10.0,
+        "files_processed": 3,
+        "avg_process_time": 0.10212930043538411,
+        "total_process_time": 0.30638790130615234
+      }
+    },
+    {
+      "workflow_name": "Journalist Interview",
+      "success": true,
+      "total_duration": 0.0009558200836181641,
+      "stages": [
+        {
+          "stage": "Review Transcripts",
+          "duration": 0.0009558200836181641
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "transcript_compiled": true,
+        "compiled_length": 105
+      }
+    },
+    {
+      "workflow_name": "Quick Voice Memo",
+      "success": true,
+      "total_duration": 1.3828277587890625e-05,
+      "stages": [
+        {
+          "stage": "Configure Fast Mode",
+          "duration": 1.3828277587890625e-05
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "fast_mode_enabled": true,
+        "silence_threshold": 0.8
+      }
+    },
+    {
+      "workflow_name": "Quick Voice Memo",
+      "success": true,
+      "total_duration": 0.0014481544494628906,
+      "stages": [
+        {
+          "stage": "Quick Record",
+          "duration": 0.0014481544494628906
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "record_time": 0.0014240741729736328,
+        "audio_duration": 2.0
+      }
+    },
+    {
+      "workflow_name": "Quick Voice Memo",
+      "success": true,
+      "total_duration": 0.05214500427246094,
+      "stages": [
+        {
+          "stage": "Immediate Transcription",
+          "duration": 0.05214500427246094
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "transcription_time": 0.05207395553588867,
+        "real_time_factor": 0.026036977767944336
+      }
+    },
+    {
+      "workflow_name": "Quick Voice Memo",
+      "success": true,
+      "total_duration": 0.0009808540344238281,
+      "stages": [
+        {
+          "stage": "Clear and Re-record",
+          "duration": 0.0009808540344238281
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "re_recorded": true,
+        "memo_count": 1
+      }
+    },
+    {
+      "workflow_name": "Multilingual User",
+      "success": true,
+      "total_duration": 8.821487426757812e-06,
+      "stages": [
+        {
+          "stage": "Switch to Spanish",
+          "duration": 8.821487426757812e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "language_changed": true,
+        "new_language": "Spanish"
+      }
+    },
+    {
+      "workflow_name": "Multilingual User",
+      "success": true,
+      "total_duration": 0.0012841224670410156,
+      "stages": [
+        {
+          "stage": "Record Spanish Audio",
+          "duration": 0.0012841224670410156
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "spanish_recorded": true
+      }
+    },
+    {
+      "workflow_name": "Multilingual User",
+      "success": true,
+      "total_duration": 1.2159347534179688e-05,
+      "stages": [
+        {
+          "stage": "Verify Language Persistence",
+          "duration": 1.2159347534179688e-05
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "language_persisted": true,
+        "settings_history_count": 1
+      }
+    },
+    {
+      "workflow_name": "Multilingual User",
+      "success": true,
+      "total_duration": 0.0031647682189941406,
+      "stages": [
+        {
+          "stage": "Switch Back to English",
+          "duration": 0.0031647682189941406
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "switched_back": true,
+        "final_language": "English"
+      }
+    },
+    {
+      "workflow_name": "UI Navigation",
+      "success": true,
+      "total_duration": 8.106231689453125e-06,
+      "stages": [
+        {
+          "stage": "Initial Desktop Layout",
+          "duration": 8.106231689453125e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "initial_layout": "desktop",
+        "initial_width": 1100
+      }
+    },
+    {
+      "workflow_name": "UI Navigation",
+      "success": true,
+      "total_duration": 5.245208740234375e-06,
+      "stages": [
+        {
+          "stage": "Resize to Mobile",
+          "duration": 5.245208740234375e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "mobile_layout_working": true,
+        "mobile_width": 500
+      }
+    },
+    {
+      "workflow_name": "UI Navigation",
+      "success": true,
+      "total_duration": 3.0994415283203125e-06,
+      "stages": [
+        {
+          "stage": "Resize to Compact",
+          "duration": 3.0994415283203125e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "compact_layout_working": true,
+        "compact_width": 650
+      }
+    },
+    {
+      "workflow_name": "UI Navigation",
+      "success": true,
+      "total_duration": 1.9073486328125e-06,
+      "stages": [
+        {
+          "stage": "Resize to Desktop",
+          "duration": 1.9073486328125e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "desktop_layout_working": true,
+        "desktop_width": 900
+      }
+    },
+    {
+      "workflow_name": "UI Navigation",
+      "success": true,
+      "total_duration": 5.0067901611328125e-06,
+      "stages": [
+        {
+          "stage": "Test Button States",
+          "duration": 5.0067901611328125e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "button_tests_passed": 4,
+        "all_buttons_functional": true
+      }
+    },
+    {
+      "workflow_name": "Error Recovery",
+      "success": true,
+      "total_duration": 0.0009679794311523438,
+      "stages": [
+        {
+          "stage": "Start Recording",
+          "duration": 0.0009679794311523438
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {}
+    },
+    {
+      "workflow_name": "Error Recovery",
+      "success": true,
+      "total_duration": 1.9073486328125e-06,
+      "stages": [
+        {
+          "stage": "Simulate Crash",
+          "duration": 1.9073486328125e-06
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "crash_simulated": true,
+        "crash_detected": true
+      }
+    },
+    {
+      "workflow_name": "Error Recovery",
+      "success": true,
+      "total_duration": 1.0013580322265625e-05,
+      "stages": [
+        {
+          "stage": "Verify No Freeze",
+          "duration": 1.0013580322265625e-05
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "response_time_ms": 0.0016689300537109375,
+        "app_responsive": true
+      }
+    },
+    {
+      "workflow_name": "Error Recovery",
+      "success": true,
+      "total_duration": 0.0014429092407226562,
+      "stages": [
+        {
+          "stage": "Recovery and Restart",
+          "duration": 0.0014429092407226562
+        }
+      ],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {
+        "recovery_time_ms": 0.9219646453857422,
+        "recovery_successful": true,
+        "recordings_after_recovery": 2
+      }
+    },
+    {
+      "workflow_name": "Error Recovery",
+      "success": true,
+      "total_duration": 0.0,
+      "stages": [],
+      "errors": [],
+      "data_loss": false,
+      "state_consistent": true,
+      "metrics": {}
+    }
+  ],
+  "summary": {
+    "total": 29,
+    "passed": 29,
+    "failed": 0
+  }
+}

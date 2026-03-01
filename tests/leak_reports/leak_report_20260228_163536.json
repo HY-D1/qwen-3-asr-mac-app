@@ -1,0 +1,17 @@
+{
+  "timestamp": "20260228_163536",
+  "test_config": {
+    "long_running_duration": 30,
+    "batch_transcription_count": 50,
+    "streaming_cycles": 100,
+    "model_switch_count": 20,
+    "memory_growth_threshold": 0.1,
+    "sample_audio_duration": 5
+  },
+  "results": [],
+  "summary": {
+    "total_tests": 0,
+    "passed": 0,
+    "failed": 0
+  }
+}
