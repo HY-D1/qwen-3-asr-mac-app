@@ -28,7 +28,6 @@ import tempfile
 import time
 import queue
 import traceback
-from pathlib import Path
 from typing import Optional, Dict, Any, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -37,7 +36,6 @@ from enum import Enum
 import numpy as np
 import wave
 import subprocess
-import json
 
 # Import constants
 from constants import (
@@ -50,8 +48,7 @@ from constants import (
 
 # Import text reformer
 try:
-    from text_reformer import TextReformer, ReformMode, BatchTextReformer
-    from text_reformer import get_reform_description, get_reform_icon
+    from text_reformer import TextReformer, ReformMode
     TEXT_REFORMER_AVAILABLE = True
 except ImportError:
     TEXT_REFORMER_AVAILABLE = False
@@ -88,11 +85,6 @@ class TranscriptionResult:
     model: str = ""
     stats: PerformanceStats = field(default_factory=PerformanceStats)
 
-
-class ProcessingMode(Enum):
-    """Audio processing mode"""
-    LIVE = "live"      # Real-time streaming (0.6B model)
-    UPLOAD = "upload"  # File upload (1.7B model)
 
 
 # =============================================================================

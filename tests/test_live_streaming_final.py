@@ -51,11 +51,11 @@ import sys
 import time
 import wave
 import json
-import signal
+
 import tempfile
 import threading
 import subprocess
-import tracemalloc
+
 import gc
 import numpy as np
 import unittest

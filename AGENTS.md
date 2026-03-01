@@ -60,10 +60,10 @@ qwen-3-asr-mac-app-main/
 │   ├── test_batch_mode.py
 │   ├── test_user_workflows.py
 │   ├── README.md             # Test documentation
-│   ├── TEST_REPORT.md        # Live streaming test report
 │   ├── LIVE_STREAMING_FIX_REPORT.md
 │   └── assets/               # Test audio samples
-├── docs/                      # (empty)
+├── docs/                      # Documentation
+│   └── M1_PRO_SETUP.md       # Apple Silicon setup guide
 ├── README.md                  # User documentation
 ├── LICENSE                    # MIT License
 └── .gitignore                 # Git ignore rules
@@ -190,7 +190,6 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
 | `test_user_workflows.py` | User scenarios | Complete workflows |
 
 ### Test Reports
-- `tests/TEST_REPORT.md` - Live streaming initial test results
 - `tests/LIVE_STREAMING_FIX_REPORT.md` - Threading fix validation
 
 ## Code Organization

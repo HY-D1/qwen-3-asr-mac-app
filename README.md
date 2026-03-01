@@ -80,7 +80,7 @@ The UI automatically adapts to your window size:
 ```
 🎤 Microphone → [Save] → [Process] → 📄 Text
 ```
-- Faster processing (0.02x RTF vs 0.46x)
+- Faster processing (0.02x RTF vs 0.72x)
 - Best for quick voice memos
 
 ## 🤖 AI Text Refinement
@@ -134,8 +134,8 @@ The 4-bit quantized 3B parameter model (~1.8GB download) runs efficiently on 8GB
 Recordings automatically saved to:
 ```
 ~/Documents/Qwen3-ASR-Recordings/
-├── class_20240227_103000.wav    # Raw audio
-├── class_20240227_113000.wav    # Next recording
+├── live_20240227_103000.wav    # Raw audio
+├── live_20240227_113000.wav    # Next recording
 └── ...
 ```
 
@@ -145,7 +145,7 @@ Recordings automatically saved to:
 |-------|------|-------|----------|
 | 0.6B | MLX | ~0.02x RTF | Fast transcription |
 | 1.7B | MLX | ~0.03x RTF | Best accuracy |
-| 0.6B | Streaming | ~0.46x RTF | Live transcription |
+| 0.6B | Streaming | ~0.72x RTF | Live transcription |
 
 *RTF (Real-Time Factor): Lower is faster*
 

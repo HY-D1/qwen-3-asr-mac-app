@@ -30,7 +30,6 @@ from pathlib import Path
 import numpy as np
 
 # Import constants
-from constants import COLORS
 
 
 # =============================================================================
@@ -414,65 +413,6 @@ class TextReformer:
         
         return result
     
-    def compare_transcripts(self, 
-                           transcripts: List[str],
-                           titles: Optional[List[str]] = None) -> Dict[str, Any]:
-        """
-        Compare multiple transcripts and find correlations.
-        
-        Args:
-            transcripts: List of transcript texts
-            titles: Optional titles for each transcript
-            
-        Returns:
-            Dictionary with comparison results
-        """
-        if len(transcripts) < 2:
-            return {"error": "Need at least 2 transcripts to compare"}
-        
-        if not titles:
-            titles = [f"Transcript {i+1}" for i in range(len(transcripts))]
-        
-        # Build comparison prompt
-        comparison_text = []
-        for title, transcript in zip(titles, transcripts):
-            comparison_text.append(f"\n{'='*50}\n{title}:\n{'='*50}\n{transcript[:1500]}...")
-        
-        prompt = f"""You are a transcript comparison assistant. Analyze the following transcripts and identify:
-1. Common topics and themes across all transcripts
-2. Unique topics in each transcript
-3. Similarities and differences in content
-4. Overall coherence/consistency between transcripts
-
-{''.join(comparison_text)}
-
-Provide your analysis in this JSON format:
-{{
-    "common_topics": ["shared topics"],
-    "unique_topics": {{
-        "{titles[0]}": ["unique topics"],
-        "{titles[1]}": ["unique topics"]
-    }},
-    "similarities": "description of content overlap",
-    "differences": "description of content differences",
-    "coherence_score": 0.0 to 1.0
-}}
-
-Return ONLY the JSON."""
-        
-        try:
-            with self._lock:
-                if self.backend == 'mlx':
-                    response = self._generate_mlx_text(prompt)
-                else:
-                    response = self._generate_llama_cpp_text(prompt)
-            
-            json_str = self._extract_json(response)
-            return json.loads(json_str)
-            
-        except Exception as e:
-            return {"error": str(e)}
-    
     def _generate_mlx_text(self, prompt: str) -> str:
         """Generate text using MLX"""
         from mlx_lm import generate
@@ -560,83 +500,9 @@ Return ONLY the JSON."""
 # Batch Processing
 # =============================================================================
 
-class BatchTextReformer:
-    """Batch process multiple texts with progress tracking"""
-    
-    def __init__(self, reformer: TextReformer):
-        self.reformer = reformer
-        self.results: List[ReformResult] = []
-        self.is_running = False
-        self.progress_queue: queue.Queue = queue.Queue()
-    
-    def process_batch(self, 
-                      texts: List[str],
-                      mode: ReformMode = ReformMode.PUNCTUATE,
-                      callback: Optional[Callable[[int, int, ReformResult], None]] = None):
-        """
-        Process multiple texts in batch.
-        
-        Args:
-            texts: List of texts to reform
-            mode: Reformation mode
-            callback: Called with (current, total, result) for each item
-        """
-        self.is_running = True
-        self.results = []
-        
-        total = len(texts)
-        
-        for i, text in enumerate(texts):
-            if not self.is_running:
-                break
-            
-            result = self.reformer.reform(text, mode)
-            self.results.append(result)
-            
-            self.progress_queue.put(('progress', i + 1, total))
-            
-            if callback:
-                callback(i + 1, total, result)
-        
-        self.is_running = False
-        self.progress_queue.put(('complete', len(self.results), total))
-    
-    def stop(self):
-        """Stop batch processing"""
-        self.is_running = False
-
-
 # =============================================================================
 # Utility Functions
 # =============================================================================
-
-def get_reform_description(mode: ReformMode) -> str:
-    """Get human-readable description for reform mode"""
-    descriptions = {
-        ReformMode.PUNCTUATE: "Add punctuation & capitalization",
-        ReformMode.PARAGRAPH: "Structure into paragraphs",
-        ReformMode.SUMMARIZE: "Create summary",
-        ReformMode.KEY_POINTS: "Extract key points",
-        ReformMode.FORMAT: "Format as meeting notes",
-        ReformMode.TRANSLATE: "Translate text",
-        ReformMode.CLEAN: "Remove filler words",
-    }
-    return descriptions.get(mode, "Reform text")
-
-
-def get_reform_icon(mode: ReformMode) -> str:
-    """Get icon for reform mode"""
-    icons = {
-        ReformMode.PUNCTUATE: "📝",
-        ReformMode.PARAGRAPH: "📄",
-        ReformMode.SUMMARIZE: "📋",
-        ReformMode.KEY_POINTS: "🔑",
-        ReformMode.FORMAT: "📑",
-        ReformMode.TRANSLATE: "🌐",
-        ReformMode.CLEAN: "✨",
-    }
-    return icons.get(mode, "🔄")
-
 
 # =============================================================================
 # Entry Point for Testing

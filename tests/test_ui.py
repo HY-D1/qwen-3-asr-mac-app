@@ -7,8 +7,7 @@ Tests tkinter UI components, responsiveness, and visual consistency
 import sys
 import os
 import unittest
-from unittest.mock import MagicMock, patch, call
-from typing import Optional, Dict, Any
+
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))

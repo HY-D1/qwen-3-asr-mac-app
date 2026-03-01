@@ -238,7 +238,7 @@ A **web-based speech-to-text application** with:
 | Phase 2: Web UI Basic | ✅ Done | File upload + display |
 | Phase 3: AI Integration | ✅ Done | Ollama/Qwen added |
 | Phase 4: Live Recording | ✅ Done | Gradio mic component |
-| Phase 5: Polish | 🔄 Partial | Model selection needed |
+| Phase 5: Polish | ✅ Done | Model selection, export features implemented |
 
 ---
 
@@ -305,6 +305,8 @@ qwen-3-asr-mac-app-main/
 ├── web_ui.py                # ✅ Main Web Application
 ├── cli_app.py               # CLI application
 ├── PROJECT_DESIGN.md        # This document
+├── docs/                    # Documentation
+│   └── M1_PRO_SETUP.md     # Apple Silicon setup guide
 └── backend/
     └── venv_system/         # Virtual environment
 ```
@@ -357,8 +359,8 @@ qwen-3-asr-mac-app-main/
 - [x] Live recording from browser
 - [x] Free local AI (Ollama/Qwen)
 - [x] Multiple reform modes
-- [ ] Model selection UI
-- [ ] Export to file
+- [x] Model selection UI
+- [x] Export to file (copy buttons)
 - [ ] Session history
 
 ---
