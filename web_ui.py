@@ -149,7 +149,7 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
             with gr.Tab("🎤 Record Audio"):
                 gr.Markdown("Click 'Record' to start recording from microphone")
                 record_input = gr.Audio(
-                    source="microphone",
+                    sources=["microphone"],
                     type="filepath",
                     label="Record Audio"
                 )
