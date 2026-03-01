@@ -16,6 +16,7 @@ Features:
 import tkinter as tk
 from tkinter import ttk, scrolledtext, filedialog, messagebox
 import threading
+import concurrent.futures
 import os
 import sys
 
@@ -544,7 +545,7 @@ class BottomBar(tk.Frame):
 
 
 class LiveStreamer:
-    """Live streaming transcription using C implementation"""
+    """Live streaming transcription using C implementation - chunked processing"""
     
     def __init__(self, model_dir="assets/c-asr/qwen3-asr-0.6b", 
                  binary_path="assets/c-asr/qwen_asr",
@@ -554,104 +555,160 @@ class LiveStreamer:
         self.model_dir = os.path.join(base_dir, model_dir)
         self.binary_path = os.path.join(base_dir, binary_path)
         self.sample_rate = sample_rate
-        self.chunk_duration = 2.0
+        self.chunk_duration = 5.0  # Process 5-second chunks for better accuracy
         self.chunk_samples = int(self.chunk_duration * sample_rate)
-        self.process = None
         self.raw_frames = []
         self.is_running = False
         self.transcript_buffer = ""
         self.current_audio_file = None
+        self.output_callback = None
+        self.status_callback = None
+        self.audio_buffer = []
+        self.buffer_lock = threading.Lock()
+        self._pending_chunks = 0
+        # Use a thread pool with single worker to serialize chunk processing
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         
     def start(self, output_callback=None, status_callback=None):
         """Start live streaming transcription"""
         self.is_running = True
         self.raw_frames = []
+        self.audio_buffer = []
         self.transcript_buffer = ""
+        self.output_callback = output_callback
+        self.status_callback = status_callback
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         os.makedirs(RECORDINGS_DIR, exist_ok=True)
         self.current_audio_file = os.path.join(RECORDINGS_DIR, f"class_{timestamp}.wav")
         
-        cmd = [
-            self.binary_path,
-            "-d", self.model_dir,
-            "--stdin",
-            "--stream",
-            "--language", "English"
-        ]
-        
-        self.process = subprocess.Popen(
-            cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=False,  # Binary mode for audio streaming
-            bufsize=0
-        )
-        
-        self.output_thread = threading.Thread(
-            target=self._read_output,
-            args=(output_callback, status_callback)
-        )
-        self.output_thread.daemon = True
-        self.output_thread.start()
-        
         return self.current_audio_file
-    
-    def _read_output(self, output_callback, status_callback):
-        """Read streaming output from C binary"""
-        while self.is_running:
-            try:
-                # Read line from binary stdout and decode
-                line_bytes = self.process.stdout.readline()
-                if not line_bytes:
-                    break
-                
-                line = line_bytes.decode('utf-8', errors='replace').rstrip()
-                
-                if line.startswith("Loading") or line.startswith("Detected") or line.startswith("Model loaded"):
-                    if status_callback:
-                        status_callback(line)
-                    continue
-                
-                if line.startswith("Inference:") or line.startswith("Audio:"):
-                    if status_callback:
-                        status_callback(line)
-                    continue
-                
-                if line and not line.startswith("▶") and not line.startswith("·") and not line.startswith("▪"):
-                    # Only add actual text (not monitoring symbols)
-                    self.transcript_buffer += line
-                    if output_callback:
-                        output_callback(line, is_partial=True)
-            except (BrokenPipeError, OSError):
-                break
     
     def feed_audio(self, audio_chunk: np.ndarray):
         """Feed audio chunk to streaming engine"""
-        if not self.is_running or not self.process:
+        if not self.is_running:
             return
         
+        # Save for final WAV file
         self.raw_frames.append(audio_chunk.copy())
         
-        audio_int16 = np.clip(audio_chunk * 32767, -32768, 32768).astype(np.int16)
+        # Add to processing buffer
+        with self.buffer_lock:
+            self.audio_buffer.append(audio_chunk)
+            total_samples = sum(len(a) for a in self.audio_buffer)
+            
+            # Process when we have enough audio and not too many pending
+            if total_samples >= self.chunk_samples and self._pending_chunks < 1:
+                # Extract chunk
+                combined = np.concatenate(self.audio_buffer)
+                to_process = combined[:self.chunk_samples].copy()
+                remaining = combined[self.chunk_samples:]
+                
+                # Clear buffer and keep remaining
+                self.audio_buffer = [remaining] if len(remaining) > 0 else []
+                self._pending_chunks += 1
+                
+                # Submit to thread pool (serializes execution)
+                self._executor.submit(self._process_chunk, to_process)
+    
+    def _process_chunk(self, audio: np.ndarray):
+        """Process a single audio chunk with C binary - runs in thread pool"""
+        temp_file = None
         try:
-            self.process.stdin.write(audio_int16.tobytes())
-            self.process.stdin.flush()
-        except (BrokenPipeError, OSError):
-            pass
+            if not self.is_running:
+                return
+                
+            if self.status_callback:
+                self.status_callback("Processing chunk...")
+            
+            # Convert to int16
+            audio_int16 = np.clip(audio * 32767, -32768, 32768).astype(np.int16)
+            
+            # Write to temporary WAV file
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+                temp_file = f.name
+            
+            # Write proper WAV file
+            with wave.open(temp_file, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(self.sample_rate)
+                wf.writeframes(audio_int16.tobytes())
+            
+            # Run C binary with file input - use subprocess.run for simplicity
+            cmd = [
+                self.binary_path,
+                "-d", self.model_dir,
+                "-i", temp_file,
+                "--language", "English"
+            ]
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                timeout=30
+            )
+            
+            # Parse output
+            stdout_text = result.stdout.decode('utf-8', errors='replace')
+            stderr_text = result.stderr.decode('utf-8', errors='replace')
+            
+            # Extract transcription (first non-empty line of stdout)
+            transcript = ""
+            for line in stdout_text.split('\n'):
+                line = line.strip()
+                if line and not line.startswith('Inference:') and not line.startswith('Audio:'):
+                    transcript = line
+                    break
+            
+            if transcript:
+                self.transcript_buffer += transcript + " "
+                if self.output_callback:
+                    self.output_callback(transcript + " ", is_partial=True)
+            
+            # Show timing info
+            for line in stderr_text.split('\n'):
+                if "Inference:" in line or "Audio:" in line:
+                    if self.status_callback:
+                        self.status_callback(line.strip())
+                        
+        except Exception as e:
+            print(f"LiveStreamer: Error processing chunk: {e}")
+        finally:
+            with self.buffer_lock:
+                self._pending_chunks = max(0, self._pending_chunks - 1)
+            # Clean up temp file
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.unlink(temp_file)
+                except:
+                    pass
     
     def stop(self) -> tuple:
         """Stop streaming and return results"""
         self.is_running = False
         
-        if self.process:
-            try:
-                self.process.stdin.close()
-                self.process.wait(timeout=5)
-            except:
-                self.process.terminate()
+        # Wait for pending chunks to complete (with timeout)
+        for _ in range(60):  # Wait up to 6 seconds
+            with self.buffer_lock:
+                if self._pending_chunks == 0:
+                    break
+            time.sleep(0.1)
         
+        # Shutdown executor
+        self._executor.shutdown(wait=False)
+        
+        # Process remaining audio
+        with self.buffer_lock:
+            if self.audio_buffer:
+                remaining = np.concatenate(self.audio_buffer)
+                if len(remaining) > self.sample_rate * 0.5:  # At least 0.5 second
+                    # Process synchronously
+                    self._process_chunk_sync(remaining)
+                self.audio_buffer = []
+        
+        # Save WAV file
         if self.raw_frames and self.current_audio_file:
             audio = np.concatenate(self.raw_frames)
             audio_int16 = np.clip(audio * 32767, -32768, 32768).astype(np.int16)
@@ -663,6 +720,49 @@ class LiveStreamer:
                 wf.writeframes(audio_int16.tobytes())
         
         return self.current_audio_file, self.transcript_buffer
+    
+    def _process_chunk_sync(self, audio: np.ndarray):
+        """Process chunk synchronously (for remaining audio at stop)"""
+        temp_file = None
+        try:
+            audio_int16 = np.clip(audio * 32767, -32768, 32768).astype(np.int16)
+            
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+                temp_file = f.name
+            
+            with wave.open(temp_file, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(self.sample_rate)
+                wf.writeframes(audio_int16.tobytes())
+            
+            cmd = [
+                self.binary_path,
+                "-d", self.model_dir,
+                "-i", temp_file,
+                "--language", "English"
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, timeout=30)
+            
+            stdout_text = result.stdout.decode('utf-8', errors='replace')
+            for line in stdout_text.split('\n'):
+                line = line.strip()
+                if line and not line.startswith('Inference:') and not line.startswith('Audio:'):
+                    self.transcript_buffer += line + " "
+                    if self.output_callback:
+                        self.output_callback(line + " ", is_partial=True)
+                    break
+                    
+        except Exception as e:
+            print(f"LiveStreamer: Error in sync processing: {e}")
+        finally:
+            if temp_file and os.path.exists(temp_file):
+                try:
+                    os.unlink(temp_file)
+                except:
+                    pass
 
 
 class AudioRecorder:
@@ -1233,9 +1333,8 @@ class QwenASRApp:
         """Capture audio for live streaming"""
         import sounddevice as sd
         
-        # Buffer for accumulating audio into 2-second chunks
+        # Buffer for accumulating audio into chunks
         audio_buffer = []
-        buffer_samples = int(SAMPLE_RATE * 2.0)  # 2 seconds
         
         def audio_callback(indata, frame_count, time_info, status):
             if not self.is_recording:
@@ -1249,19 +1348,10 @@ class QwenASRApp:
             if self.recorder.level_callback:
                 self.recorder.level_callback(level, is_speech)
             
-            # Feed to streamer when we have 2 seconds of audio
-            total_samples = sum(len(a) for a in audio_buffer)
-            if total_samples >= buffer_samples:
-                # Concatenate and send
-                combined = np.concatenate(audio_buffer)
-                # Take exactly 2 seconds
-                to_send = combined[:buffer_samples]
-                remaining = combined[buffer_samples:]
-                self.live_streamer.feed_audio(to_send)
-                # Keep remaining for next chunk
-                audio_buffer.clear()
-                if len(remaining) > 0:
-                    audio_buffer.append(remaining)
+            # Feed to streamer
+            combined = np.concatenate(audio_buffer)
+            self.live_streamer.feed_audio(combined)
+            audio_buffer.clear()
         
         self.audio_stream = sd.InputStream(
             samplerate=SAMPLE_RATE,
@@ -1503,3 +1593,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+# LiveStreamer class replaced with chunked processing
+# See end of file for new implementation
