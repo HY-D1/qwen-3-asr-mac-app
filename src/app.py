@@ -56,6 +56,13 @@ try:
 except ImportError:
     TEXT_REFORMER_AVAILABLE = False
 
+# Import simple LLM as fallback/alternative
+try:
+    from simple_llm import SimpleLLM
+    SIMPLE_LLM_AVAILABLE = True
+except ImportError:
+    SIMPLE_LLM_AVAILABLE = False
+
 
 # =============================================================================
 # Data Classes
@@ -1395,6 +1402,8 @@ class QwenASRApp:
         
         # LLM Reformer state
         self.text_reformer: Optional[TextReformer] = None
+        self.simple_llm: Optional[SimpleLLM] = None
+        self.use_simple_llm = True  # Prefer simple LLM for reliability
         self.last_transcript = ""
         self.reformed_text = ""
         self.correlation_data = None
@@ -1931,23 +1940,34 @@ class QwenASRApp:
     
     def load_reformer_model(self):
         """Load the LLM text reformer model in background"""
-        if not TEXT_REFORMER_AVAILABLE:
-            return
         
         def worker():
-            try:
-                if not self.text_reformer:
-                    self.text_reformer = TextReformer(
-                        progress_callback=lambda x: self.reformer_queue.put(('progress', x))
-                    )
-                
-                success = self.text_reformer.load_model()
-                if success:
-                    self.reformer_queue.put(('loaded', 'LLM ready'))
-                else:
-                    self.reformer_queue.put(('error', 'Failed to load LLM'))
-            except Exception as e:
-                self.reformer_queue.put(('error', str(e)))
+            # Try simple LLM first (most reliable)
+            if SIMPLE_LLM_AVAILABLE and self.use_simple_llm:
+                try:
+                    self.reformer_queue.put(('progress', 'Initializing AI processor...'))
+                    self.simple_llm = SimpleLLM()
+                    if self.simple_llm.is_available():
+                        self.reformer_queue.put(('loaded', f'✅ AI ready ({self.simple_llm.backend_name})'))
+                        return
+                except Exception as e:
+                    print(f"Simple LLM failed: {e}")
+            
+            # Fall back to advanced text_reformer
+            if TEXT_REFORMER_AVAILABLE:
+                try:
+                    if not self.text_reformer:
+                        self.text_reformer = TextReformer(
+                            progress_callback=lambda x: self.reformer_queue.put(('progress', x))
+                        )
+                    
+                    success = self.text_reformer.load_model()
+                    if success:
+                        self.reformer_queue.put(('loaded', '✅ LLM ready'))
+                    else:
+                        self.reformer_queue.put(('error', 'Failed to load LLM'))
+                except Exception as e:
+                    self.reformer_queue.put(('error', str(e)))
         
         threading.Thread(target=worker, daemon=True).start()
     
@@ -1983,7 +2003,11 @@ class QwenASRApp:
     
     def reform_current_text(self):
         """Reform the current transcript text"""
-        if not TEXT_REFORMER_AVAILABLE or not self.text_reformer:
+        # Check if any LLM is available
+        has_llm = (self.simple_llm and self.simple_llm.is_available()) or \
+                  (self.text_reformer and self.text_reformer.is_available())
+        
+        if not has_llm:
             messagebox.showwarning("LLM Not Available", 
                 "Text reformer is not available. Please enable it in the sidebar.")
             return
@@ -1996,7 +2020,6 @@ class QwenASRApp:
         
         self.last_transcript = text
         mode_str = self.sidebar.get_llm_mode()
-        mode = ReformMode(mode_str)
         
         # Show processing state
         self.sidebar.update_llm_status("🔄 Reforming...", COLORS['warning'])
@@ -2004,7 +2027,24 @@ class QwenASRApp:
         
         def worker():
             try:
-                result = self.text_reformer.reform(text, mode)
+                # Use simple LLM if available (faster/more reliable)
+                if self.simple_llm and self.simple_llm.is_available():
+                    reformed = self.simple_llm.process(text, mode_str)
+                    # Create a simple result object
+                    from dataclasses import dataclass
+                    @dataclass
+                    class SimpleResult:
+                        original_text: str
+                        reformed_text: str
+                        mode: Any
+                        processing_time: float = 0.0
+                    result = SimpleResult(text, reformed, mode_str)
+                else:
+                    # Fall back to advanced reformer
+                    from text_reformer import ReformMode
+                    mode = ReformMode(mode_str)
+                    result = self.text_reformer.reform(text, mode)
+                
                 self.reformer_queue.put(('reform_complete', result))
             except Exception as e:
                 self.reformer_queue.put(('error', str(e)))
@@ -2013,7 +2053,10 @@ class QwenASRApp:
     
     def analyze_current_text(self):
         """Analyze the current transcript for correlations"""
-        if not TEXT_REFORMER_AVAILABLE or not self.text_reformer:
+        has_llm = (self.simple_llm and self.simple_llm.is_available()) or \
+                  (self.text_reformer and self.text_reformer.is_available())
+        
+        if not has_llm:
             messagebox.showwarning("LLM Not Available", 
                 "Text reformer is not available. Please enable it in the sidebar.")
             return
@@ -2031,7 +2074,28 @@ class QwenASRApp:
         
         def worker():
             try:
-                result = self.text_reformer.analyze_correlations(text)
+                if self.simple_llm and self.simple_llm.is_available():
+                    analysis = self.simple_llm.analyze(text)
+                    # Convert to format expected by UI
+                    from dataclasses import dataclass, field
+                    @dataclass
+                    class SimpleAnalysis:
+                        topics: List[str] = field(default_factory=list)
+                        entities: List[Dict] = field(default_factory=list)
+                        sentiment: str = "neutral"
+                        sentiment_score: float = 0.5
+                        keywords: List[str] = field(default_factory=list)
+                        summary: str = ""
+                    
+                    result = SimpleAnalysis(
+                        keywords=[f"Words: {analysis.get('word_count', 0)}", 
+                                 f"Sentences: {analysis.get('sentence_count', 0)}"],
+                        summary=f"Text statistics - Backend: {analysis.get('backend_used', 'unknown')}",
+                        backend=analysis.get('backend_used', 'unknown')
+                    )
+                else:
+                    result = self.text_reformer.analyze_correlations(text)
+                
                 self.reformer_queue.put(('analysis_complete', result))
             except Exception as e:
                 self.reformer_queue.put(('error', str(e)))
