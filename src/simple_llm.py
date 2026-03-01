@@ -77,11 +77,13 @@ class TransformersBackend:
     def __init__(self, model_size="0.5B"):
         self.pipeline = None
         self.available = False
-        # Use standard HF models (more compatible with older transformers)
+        # Use models compatible with transformers 4.35.0
+        # Qwen2.5 needs transformers 4.36+, so we use compatible alternatives
+        # Note: These models will download on first use
         self.model_options = {
-            "0.5B": "Qwen/Qwen2.5-0.5B-Instruct",   # Best for 8GB, most compatible
-            "1.5B": "Qwen/Qwen2.5-1.5B-Instruct",   # Better quality
-            "3B": "Qwen/Qwen2.5-3B-Instruct",       # Risky on 8GB
+            "0.5B": "sshleifer/tiny-gpt2",             # Tiny model for testing
+            "1.5B": "gpt2",                            # GPT-2 (not ideal but works)
+            "3B": "gpt2-medium",                       # Larger GPT-2
         }
         self.model_name = self.model_options.get(model_size, self.model_options["0.5B"])
         self._init()
