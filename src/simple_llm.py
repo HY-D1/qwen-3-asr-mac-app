@@ -66,73 +66,138 @@ class OpenAIBackend:
 # =============================================================================
 
 class TransformersBackend:
-    """Use HuggingFace transformers - downloads model once"""
+    """Use HuggingFace transformers - downloads model once
     
-    def __init__(self):
+    Best models for Mac M1 8GB:
+    - Qwen/Qwen2.5-0.5B-Instruct: ~1GB, very fast, fits easily
+    - Qwen/Qwen2.5-1.5B-Instruct: ~3GB, better quality, still fits
+    - mlx-community/Qwen2.5-0.5B-Instruct-4bit: Optimized for Apple Silicon
+    """
+    
+    def __init__(self, model_size="0.5B"):
         self.pipeline = None
         self.available = False
-        self.model_name = "Qwen/Qwen2.5-0.5B-Instruct"  # Small, fast model
+        # Use MLX-optimized model if available, otherwise regular HF model
+        self.model_options = {
+            "0.5B": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",  # Best for 8GB
+            "1.5B": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",  # Better quality
+            "3B": "mlx-community/Qwen2.5-3B-Instruct-4bit",      # Risky on 8GB
+        }
+        self.model_name = self.model_options.get(model_size, self.model_options["0.5B"])
         self._init()
     
     def _init(self):
         try:
-            from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+            from transformers import AutoModelForCausalLM, AutoTokenizer
             import torch
             
             print(f"📥 Loading {self.model_name} (first time may take 1-2 min)...")
             
-            # Use tiny model for fast inference
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            self.model = AutoModelForCausalLM.from_pretrained(
+            # Determine best device
+            if torch.backends.mps.is_available():
+                device = "mps"  # Apple Silicon GPU
+                dtype = torch.float16
+                print("   Using Apple Metal (MPS) acceleration")
+            elif torch.cuda.is_available():
+                device = "cuda"
+                dtype = torch.float16
+                print("   Using CUDA GPU")
+            else:
+                device = "cpu"
+                dtype = torch.float32
+                print("   Using CPU")
+            
+            # Load tokenizer and model
+            self.tokenizer = AutoTokenizer.from_pretrained(
                 self.model_name,
-                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-                device_map="auto" if torch.cuda.is_available() else "cpu"
+                trust_remote_code=True
             )
             
+            # For smaller models, don't use device_map to avoid issues
+            if "0.5B" in self.model_name:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    self.model_name,
+                    torch_dtype=dtype,
+                    trust_remote_code=True
+                )
+                self.model = self.model.to(device)
+            else:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    self.model_name,
+                    torch_dtype=dtype,
+                    device_map="auto",
+                    trust_remote_code=True
+                )
+            
+            self.device = device
             self.available = True
             print(f"✅ Loaded {self.model_name}")
             
         except Exception as e:
             print(f"Transformers backend not available: {e}")
+            import traceback
+            traceback.print_exc()
     
     def process(self, text: str, mode: str = "punctuate") -> str:
         if not self.available:
             return text
         
+        # Better prompts for instruction models
         prompts = {
-            "punctuate": "Add proper punctuation:\n\n",
-            "summarize": "Summarize:\n\n",
-            "key_points": "Key points:\n\n",
-            "format": "Meeting notes:\n\n",
-            "clean": "Clean up:\n\n"
+            "punctuate": "Add proper punctuation and capitalization to the following text. Fix obvious errors. Return ONLY the improved text:\n\nText: ",
+            "summarize": "Summarize the following text concisely. Return ONLY the summary:\n\nText: ",
+            "key_points": "Extract the key points from the following text as bullet points. Return ONLY the bullet points:\n\nText: ",
+            "format": "Format the following text as structured meeting notes. Return ONLY the formatted notes:\n\nText: ",
+            "clean": "Remove filler words (um, uh, like, you know) and fix grammar. Return ONLY the cleaned text:\n\nText: "
         }
         
         try:
             import torch
             
-            full_prompt = prompts.get(mode, prompts["punctuate"]) + text + "\n\nImproved:"
+            # Build prompt with instruction format
+            base_prompt = prompts.get(mode, prompts["punctuate"])
+            full_prompt = f"<|im_start|>user\n{base_prompt}{text}<|im_end|>\n<|im_start|>assistant\n"
             
             inputs = self.tokenizer(full_prompt, return_tensors="pt")
-            if torch.cuda.is_available():
-                inputs = inputs.to("cuda")
             
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=500,
-                temperature=0.3,
-                do_sample=True,
-                pad_token_id=self.tokenizer.eos_token_id
-            )
+            # Move to appropriate device
+            if hasattr(self, 'device') and self.device != "auto":
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            elif torch.cuda.is_available():
+                inputs = {k: v.to("cuda") for k, v in inputs.items()}
             
-            result = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            # Extract just the response part
-            if "Improved:" in result:
-                result = result.split("Improved:")[-1].strip()
+            # Generate with appropriate parameters for small models
+            with torch.no_grad():
+                outputs = self.model.generate(
+                    **inputs,
+                    max_new_tokens=min(len(text.split()) * 2, 500),  # Dynamic max tokens
+                    temperature=0.3,
+                    do_sample=True,
+                    top_p=0.9,
+                    pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
+                    eos_token_id=self.tokenizer.eos_token_id
+                )
+            
+            result = self.tokenizer.decode(outputs[0], skip_special_tokens=False)
+            
+            # Extract assistant response
+            if "<|im_start|>assistant" in result:
+                result = result.split("<|im_start|>assistant")[-1]
+            if "<|im_end|>" in result:
+                result = result.split("<|im_end|>")[0]
+            
+            result = result.strip()
+            
+            # If empty or too short, return original
+            if len(result) < len(text) * 0.5:
+                return text
             
             return result
             
         except Exception as e:
             print(f"Generation error: {e}")
+            import traceback
+            traceback.print_exc()
             return text
 
 
@@ -222,14 +287,21 @@ class SimpleLLM:
     Priority: OpenAI > Transformers > Rule-based
     """
     
-    def __init__(self):
+    def __init__(self, model_size="0.5B", prefer_openai=False):
+        """
+        Args:
+            model_size: "0.5B", "1.5B", or "3B" (for local models)
+            prefer_openai: If True, try OpenAI first even if it requires env var
+        """
         self.backend = None
         self.backend_name = "none"
+        self.model_size = model_size
         
         # Try backends in order
-        self._try_openai()
+        if prefer_openai or os.getenv('OPENAI_API_KEY'):
+            self._try_openai()
         if not self.backend:
-            self._try_transformers()
+            self._try_transformers(model_size)
         if not self.backend:
             self._use_rule_based()
     
@@ -240,9 +312,9 @@ class SimpleLLM:
             self.backend = backend
             self.backend_name = "openai"
     
-    def _try_transformers(self):
+    def _try_transformers(self, model_size):
         """Try local transformers model"""
-        backend = TransformersBackend()
+        backend = TransformersBackend(model_size)
         if backend.available:
             self.backend = backend
             self.backend_name = "transformers"
