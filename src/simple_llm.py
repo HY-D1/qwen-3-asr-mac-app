@@ -77,11 +77,11 @@ class TransformersBackend:
     def __init__(self, model_size="0.5B"):
         self.pipeline = None
         self.available = False
-        # Use MLX-optimized model if available, otherwise regular HF model
+        # Use standard HF models (more compatible with older transformers)
         self.model_options = {
-            "0.5B": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",  # Best for 8GB
-            "1.5B": "mlx-community/Qwen2.5-1.5B-Instruct-4bit",  # Better quality
-            "3B": "mlx-community/Qwen2.5-3B-Instruct-4bit",      # Risky on 8GB
+            "0.5B": "Qwen/Qwen2.5-0.5B-Instruct",   # Best for 8GB, most compatible
+            "1.5B": "Qwen/Qwen2.5-1.5B-Instruct",   # Better quality
+            "3B": "Qwen/Qwen2.5-3B-Instruct",       # Risky on 8GB
         }
         self.model_name = self.model_options.get(model_size, self.model_options["0.5B"])
         self._init()
