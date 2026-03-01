@@ -11,6 +11,123 @@ import traceback
 from typing import Optional, Dict, Any, List
 
 # =============================================================================
+# Backend 0: Ollama (Local Open Source LLM - Best Free Option)
+# =============================================================================
+
+class OllamaBackend:
+    """Use Ollama to run local open source models like Qwen, Llama, Phi"""
+    
+    def __init__(self, model: str = "qwen:1.8b"):
+        self.model = model
+        self.available = False
+        self._init()
+    
+    def _init(self):
+        try:
+            import subprocess
+            import json
+            
+            # Check if ollama is installed
+            result = subprocess.run(
+                ["which", "ollama"],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode != 0:
+                return
+            
+            # Check if server is running
+            result = subprocess.run(
+                ["ollama", "list"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                self.available = True
+                print(f"✅ Using Ollama backend ({self.model})")
+                
+                # Pull model if not present
+                if self.model not in result.stdout:
+                    print(f"📥 Pulling {self.model}...")
+                    subprocess.run(
+                        ["ollama", "pull", self.model],
+                        capture_output=True,
+                        timeout=300
+                    )
+            else:
+                # Try to start server
+                subprocess.Popen(
+                    ["ollama", "serve"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True
+                )
+                import time
+                time.sleep(2)
+                
+                # Check again
+                result = subprocess.run(
+                    ["ollama", "list"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                if result.returncode == 0:
+                    self.available = True
+                    print(f"✅ Ollama backend started ({self.model})")
+                    
+        except Exception as e:
+            print(f"Ollama not available: {e}")
+    
+    def process(self, text: str, mode: str = "punctuate") -> str:
+        if not self.available:
+            return text
+        
+        import subprocess
+        import json
+        
+        system_prompts = {
+            "punctuate": "Add proper punctuation and capitalization. Fix obvious errors. Return ONLY the improved text.",
+            "summarize": "Create a concise summary. Return ONLY the summary.",
+            "clean": "Remove filler words (um, uh, like, you know) and fix grammar. Return ONLY the cleaned text.",
+            "key_points": "Extract key points as bullet points. Return ONLY the bullet points."
+        }
+        
+        user_prompts = {
+            "punctuate": f"Add punctuation to:\n\n{text}",
+            "summarize": f"Summarize:\n\n{text}",
+            "clean": f"Clean up:\n\n{text}",
+            "key_points": f"Key points from:\n\n{text}"
+        }
+        
+        data = {
+            "model": self.model,
+            "system": system_prompts.get(mode, system_prompts["punctuate"]),
+            "prompt": user_prompts.get(mode, user_prompts["punctuate"]),
+            "stream": False
+        }
+        
+        try:
+            result = subprocess.run(
+                ["curl", "-s", "http://localhost:11434/api/generate"],
+                input=json.dumps(data),
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            if result.returncode == 0:
+                response = json.loads(result.stdout)
+                return response.get("response", text)
+        except:
+            pass
+        
+        return text
+
+
+# =============================================================================
 # Backend 1: OpenAI API (Easiest - just need API key)
 # =============================================================================
 
@@ -286,26 +403,43 @@ class RuleBasedBackend:
 class SimpleLLM:
     """
     Simple LLM interface that tries multiple backends
-    Priority: OpenAI > Transformers > Rule-based
+    Priority: Ollama > OpenAI > Transformers > Rule-based
     """
     
-    def __init__(self, model_size="0.5B", prefer_openai=False):
+    def __init__(self, model_size="0.5B", prefer_openai=False, ollama_model="qwen:1.8b"):
         """
         Args:
             model_size: "0.5B", "1.5B", or "3B" (for local models)
             prefer_openai: If True, try OpenAI first even if it requires env var
+            ollama_model: Ollama model to use (qwen:1.8b, llama3.2:3b, etc.)
         """
         self.backend = None
         self.backend_name = "none"
         self.model_size = model_size
+        self.ollama_model = ollama_model
         
         # Try backends in order
-        if prefer_openai or os.getenv('OPENAI_API_KEY'):
+        # 1. Try Ollama first (local, free, open source)
+        self._try_ollama()
+        
+        # 2. Try OpenAI if key is set
+        if not self.backend and (prefer_openai or os.getenv('OPENAI_API_KEY')):
             self._try_openai()
+        
+        # 3. Try local transformers
         if not self.backend:
             self._try_transformers(model_size)
+        
+        # 4. Fall back to rule-based
         if not self.backend:
             self._use_rule_based()
+    
+    def _try_ollama(self):
+        """Try Ollama local LLM"""
+        backend = OllamaBackend(self.ollama_model)
+        if backend.available:
+            self.backend = backend
+            self.backend_name = f"ollama-{self.ollama_model}"
     
     def _try_openai(self):
         """Try OpenAI API"""

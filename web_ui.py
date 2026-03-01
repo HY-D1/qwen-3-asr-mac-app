@@ -22,8 +22,10 @@ except ImportError:
 
 from simple_llm import SimpleLLM
 
-# Global LLM instance
-llm = SimpleLLM()
+# Global LLM instance - will try Ollama first
+print("🤖 Initializing LLM backend...")
+llm = SimpleLLM(ollama_model="qwen:1.8b")
+print(f"   Using: {llm.backend_name}")
 
 def transcribe_audio(audio_file, language="auto"):
     """Transcribe audio file using MLX"""
@@ -122,10 +124,19 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
             
             gr.Markdown(f"### Status")
             llm_status = gr.Textbox(
-                value=f"LLM: {llm.backend_name} ({'Ready' if llm.is_available() else 'Not available'})",
-                label="",
-                interactive=False
+                value=f"Backend: {llm.backend_name}\nStatus: {'Ready' if llm.is_available() else 'Not available'}",
+                label="AI Engine",
+                interactive=False,
+                lines=2
             )
+            
+            gr.Markdown("""
+            **About AI Backends:**
+            - **ollama-qwen**: Local free model (recommended)
+            - **openai**: GPT-4 (requires API key)
+            - **transformers**: Local neural network
+            - **rule-based**: Basic text cleanup
+            """)
         
         with gr.Column(scale=2):
             with gr.Tab("📁 Upload File"):
