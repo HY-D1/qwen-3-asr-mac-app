@@ -1308,8 +1308,8 @@ class QwenASRApp:
     
     def start_live_recording(self):
         """Start live streaming recording"""
-        model = self.sidebar.get_model()
-        model_name = "qwen3-asr-0.6b" if "0.6B" in model else "qwen3-asr-1.7b"
+        # Always use 0.6B for live mode (1.7B has stability issues)
+        model_name = "qwen3-asr-0.6b"
         self.live_streamer.model_dir = os.path.join(self.base_dir, "assets", "c-asr", model_name)
         
         raw_file = self.live_streamer.start(
@@ -1335,12 +1335,14 @@ class QwenASRApp:
         
         # Buffer for accumulating audio into chunks
         audio_buffer = []
+        chunk_samples = int(SAMPLE_RATE * 5.0)  # 5 seconds
         
         def audio_callback(indata, frame_count, time_info, status):
             if not self.is_recording:
                 return
             audio = indata.copy().flatten()
             audio_buffer.append(audio)
+            total_samples = sum(len(a) for a in audio_buffer)
             
             # Calculate level and call level_callback for waveform
             level = self.recorder._calculate_level(audio)
@@ -1348,10 +1350,15 @@ class QwenASRApp:
             if self.recorder.level_callback:
                 self.recorder.level_callback(level, is_speech)
             
-            # Feed to streamer
-            combined = np.concatenate(audio_buffer)
-            self.live_streamer.feed_audio(combined)
-            audio_buffer.clear()
+            # Feed to streamer when we have 5 seconds
+            if total_samples >= chunk_samples:
+                combined = np.concatenate(audio_buffer)
+                to_feed = combined[:chunk_samples]
+                remaining = combined[chunk_samples:]
+                self.live_streamer.feed_audio(to_feed)
+                audio_buffer.clear()
+                if len(remaining) > 0:
+                    audio_buffer.append(remaining)
         
         self.audio_stream = sd.InputStream(
             samplerate=SAMPLE_RATE,
@@ -1496,6 +1503,8 @@ class QwenASRApp:
                 self.status_queue.put(('success', result))
                 self.status_queue.put(('stats', stats))
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 self.status_queue.put(('error', str(e)))
             finally:
                 if is_temp and os.path.exists(file_path):
