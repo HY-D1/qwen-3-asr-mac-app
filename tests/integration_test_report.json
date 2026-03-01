@@ -1,0 +1,47 @@
+{
+  "timestamp": "2026-02-28T15:46:58.537816",
+  "system": {
+    "platform": "darwin",
+    "python_version": "3.12.2",
+    "numpy_version": "1.26.4",
+    "cpu_cores": 8,
+    "total_memory_gb": 16.0
+  },
+  "test_results": {
+    "total": 30,
+    "passed": 30,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "success_rate": 100.0
+  },
+  "metrics": {
+    "rtf_measurements": [],
+    "memory_snapshots": [],
+    "cpu_snapshots": [],
+    "processing_times": [],
+    "benchmarks": {
+      "audio_generation_1s": {
+        "value": 0.4,
+        "unit": "ms",
+        "timestamp": 23.393332958221436
+      },
+      "audio_generation_10s": {
+        "value": 3.7,
+        "unit": "ms",
+        "timestamp": 23.393338918685913
+      },
+      "fft_16k": {
+        "value": 0.12,
+        "unit": "ms",
+        "timestamp": 23.39333987236023
+      },
+      "numpy_gflops": {
+        "value": 18.91,
+        "unit": "GFLOPS",
+        "timestamp": 23.39333987236023
+      }
+    }
+  },
+  "recommendations": []
+}
