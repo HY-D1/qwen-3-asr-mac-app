@@ -679,7 +679,7 @@ class TestWindowConfiguration(unittest.TestCase):
         # minsize(450, 550)
         
         self.assertEqual(APP_NAME, "Qwen3-ASR Pro")
-        self.assertEqual(VERSION, "3.2.0")
+        self.assertEqual(VERSION, "3.3.0")
         
         default_geometry = "1100x800"
         min_size = (450, 550)

@@ -8,6 +8,7 @@ import os
 import sys
 import tempfile
 import time
+import subprocess
 from pathlib import Path
 
 # Add src to path
@@ -27,10 +28,65 @@ print("🤖 Initializing LLM backend...")
 llm = SimpleLLM(ollama_model="qwen:1.8b")
 print(f"   Using: {llm.backend_name}")
 
+
+def transcribe_with_c_binary(audio_file, model="small"):
+    """Transcribe using the C binary implementation"""
+    base_dir = os.path.dirname(__file__)
+    c_binary = os.path.join(base_dir, "assets", "c-asr", "qwen_asr")
+    
+    # Verify binary exists
+    if not os.path.exists(c_binary):
+        return None, f"C binary not found at {c_binary}"
+    
+    # Map model size to C binary model directory
+    model_map = {
+        "0.6b": "qwen3-asr-0.6b",
+        "1.7b": "qwen3-asr-1.7b",
+        "small": "qwen3-asr-0.6b", 
+        "large": "qwen3-asr-1.7b"
+    }
+    model_dir_name = model_map.get(model, "qwen3-asr-0.6b")
+    model_dir = os.path.join(base_dir, "assets", "c-asr", model_dir_name)
+    
+    # Verify model directory exists
+    if not os.path.exists(model_dir):
+        return None, f"Model directory not found: {model_dir}"
+    
+    # Build command: qwen_asr -d <model_dir> -i <audio_file> --silent
+    cmd = [c_binary, "-d", model_dir, "-i", audio_file, "--silent"]
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=300
+        )
+        if result.returncode == 0:
+            return result.stdout.strip(), "C-Binary"
+        else:
+            return None, f"C binary error (code {result.returncode}): {result.stderr}"
+    except subprocess.TimeoutExpired:
+        return None, "Transcription timeout (300s exceeded)"
+    except Exception as e:
+        return None, f"C binary failed: {str(e)}"
+
+
 def transcribe_audio(audio_file, language="auto"):
-    """Transcribe audio file using MLX"""
+    """Transcribe audio file using available backends (C binary preferred)"""
     if audio_file is None:
-        return "No audio file provided", ""
+        return "No audio file provided", "Error"
+    
+    if not os.path.exists(audio_file):
+        return f"File not found: {audio_file}", "Error"
+    
+    # Try C binary first (most reliable)
+    transcript, backend_info = transcribe_with_c_binary(audio_file)
+    if transcript:
+        return transcript, backend_info
+    
+    # Fall back to Python backends
+    last_error = backend_info  # Store C binary error message
     
     try:
         # Try MLX first
@@ -44,16 +100,22 @@ def transcribe_audio(audio_file, language="auto"):
             pass
         
         # Fall back to CLI
-        import subprocess
         cmd = [sys.executable, '-m', 'mlx_qwen3_asr', audio_file, '--stdout-only']
         if language != "auto":
             cmd.extend(['--language', language])
         
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        return result.stdout.strip(), "MLX-CLI"
-        
+        if result.returncode == 0:
+            return result.stdout.strip(), "MLX-CLI"
+        else:
+            last_error = f"MLX-CLI error: {result.stderr}"
+            
     except Exception as e:
-        return f"Error: {str(e)}", "Error"
+        last_error = f"Python backends failed: {str(e)}"
+    
+    # All backends failed
+    return f"No transcription backend available. Last error: {last_error}", "Error"
+
 
 def reform_text(text, mode):
     """Reform text using LLM"""
@@ -69,6 +131,7 @@ def reform_text(text, mode):
     except Exception as e:
         return f"Error reforming text: {str(e)}"
 
+
 def process_audio(audio_file, language, reform_mode):
     """Full pipeline: transcribe + reform"""
     if audio_file is None:
@@ -77,7 +140,7 @@ def process_audio(audio_file, language, reform_mode):
     # Step 1: Transcribe
     transcript, backend = transcribe_audio(audio_file, language)
     
-    if transcript.startswith("Error:"):
+    if transcript.startswith("Error:") or backend == "Error":
         return transcript, "", ""
     
     # Step 2: Reform if requested
@@ -91,9 +154,11 @@ def process_audio(audio_file, language, reform_mode):
     
     return transcript, reformed, llm_info
 
+
 def record_and_transcribe(audio, language, reform_mode):
     """Handle recorded audio"""
     return process_audio(audio, language, reform_mode)
+
 
 # Create Gradio interface
 with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
@@ -132,10 +197,9 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
             
             gr.Markdown("""
             **About AI Backends:**
-            - **ollama-qwen**: Local free model (recommended)
-            - **openai**: GPT-4 (requires API key)
-            - **transformers**: Local neural network
-            - **rule-based**: Basic text cleanup
+            - **C-Binary**: Fast local transcription (recommended)
+            - **MLX**: Apple Silicon optimized
+            - **MLX-CLI**: Fallback Python backend
             """)
         
         with gr.Column(scale=2):
@@ -197,13 +261,32 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
     """)
 
 if __name__ == "__main__":
+    import os
+    import socket
+    
+    def find_free_port(start=7860, max_port=7870):
+        """Find a free port starting from start port"""
+        for port in range(start, max_port + 1):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                if s.connect_ex(('localhost', port)) != 0:
+                    return port
+        return 0  # Let Gradio pick a random free port
+    
+    # Get port from environment, auto-detect, or use default
+    port_env = os.environ.get("GRADIO_SERVER_PORT", "")
+    if port_env:
+        port = int(port_env)
+    else:
+        port = find_free_port()
+    
     print("🚀 Starting Qwen3-ASR Pro Web UI...")
-    print("📱 Open your browser and go to: http://localhost:7860")
+    print(f"📱 Open your browser and go to: http://localhost:{port}")
     print("")
     
     demo.launch(
         server_name="0.0.0.0",  # Allow access from other devices
-        server_port=7860,
+        server_port=port,
         share=False,  # Set to True to create a public link
-        show_error=True
+        show_error=True,
+        quiet=False
     )

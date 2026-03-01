@@ -111,8 +111,12 @@ class OllamaBackend:
         
         try:
             result = subprocess.run(
-                ["curl", "-s", "http://localhost:11434/api/generate"],
-                input=json.dumps(data),
+                [
+                    "curl", "-s", "-X", "POST",
+                    "http://localhost:11434/api/generate",
+                    "-H", "Content-Type: application/json",
+                    "-d", json.dumps(data)
+                ],
                 capture_output=True,
                 text=True,
                 timeout=60
