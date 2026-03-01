@@ -1,0 +1,266 @@
+================================================================================
+Qwen3-ASR Pro - Batch Mode Test Report
+================================================================================
+
+Test Date: 2026-02-28 19:56:26
+Total Test Time: 0.35s
+
+Backend Information:
+----------------------------------------
+  Backend: mlx_audio
+  Available: Yes
+
+Format Compatibility Matrix:
+--------------------------------------------------------------------------------
+Format          Sample Rate     Status     RTF        Time      
+--------------------------------------------------------------------------------
+WAV             N/A             PASS       N/A        N/A       
+WAV             N/A             PASS       N/A        N/A       
+FLAC            N/A             ERROR      N/A        N/A       
+WAV             N/A             FAIL       N/A        N/A       
+WAV             N/A             ERROR      N/A        N/A       
+M4A             N/A             ERROR      N/A        N/A       
+MP3             N/A             ERROR      N/A        N/A       
+MP3             N/A             ERROR      N/A        N/A       
+OGG             N/A             ERROR      N/A        N/A       
+WAV             N/A             PASS       N/A        N/A       
+WAV             N/A             FAIL       N/A        N/A       
+WAV             N/A             ERROR      N/A        N/A       
+WAV             N/A             FAIL       N/A        N/A       
+WAV             N/A             ERROR      N/A        N/A       
+WAV             N/A             FAIL       N/A        N/A       
+WAV             N/A             ERROR      N/A        N/A       
+WAV             N/A             FAIL       N/A        N/A       
+WAV             N/A             ERROR      N/A        N/A       
+WAV             16000           FAIL       N/A        N/A       
+WAV             16000           ERROR      N/A        N/A       
+WAV             44100           FAIL       N/A        N/A       
+WAV             44100           ERROR      N/A        N/A       
+WAV             8000            FAIL       N/A        N/A       
+WAV             8000            ERROR      N/A        N/A       
+--------------------------------------------------------------------------------
+
+Test Summary:
+----------------------------------------
+  Total Tests:   24
+  Passed:        3 (12.5%)
+  Failed:        8 (33.3%)
+  Errors:        13 (54.2%)
+  Skipped:       0 (0.0%)
+
+Detailed Test Results:
+================================================================================
+
+Test: Error_CorruptFile
+----------------------------------------
+  Status:          PASS
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+
+Test: Error_EmptyFile
+----------------------------------------
+  Status:          PASS
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+
+Test: FLAC_Lossless
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.01s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           ffmpeg conversion failed: <MagicMock name='mock.run().stderr' id='4425058736'>
+
+Test: Large_10min
+----------------------------------------
+  Status:          FAIL
+  Test Duration:   0.01s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+
+Test: Large_10min
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.01s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           False is not true : Transcription failed: '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: M4A_AAC
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.01s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           ffmpeg conversion failed: <MagicMock name='mock.run().stderr' id='4425058736'>
+
+Test: MP3_128kbps
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.01s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           ffmpeg conversion failed: <MagicMock name='mock.run().stderr' id='4425058736'>
+
+Test: MP3_320kbps
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.01s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           ffmpeg conversion failed: <MagicMock name='mock.run().stderr' id='4425058736'>
+
+Test: OGG_Vorbis
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.01s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           ffmpeg conversion failed: <MagicMock name='mock.run().stderr' id='4425058736'>
+
+Test: Error_TruncatedWAV
+----------------------------------------
+  Status:          PASS
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+
+Test: Unicode_Chinese
+----------------------------------------
+  Status:          FAIL
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: Unicode_Chinese
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           False is not true : Transcription failed: '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: Unicode_Japanese
+----------------------------------------
+  Status:          FAIL
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: Unicode_Japanese
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           False is not true : Transcription failed: '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: Unicode_Spaces
+----------------------------------------
+  Status:          FAIL
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: Unicode_Spaces
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           False is not true : Transcription failed: '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: Unicode_SpecialChars
+----------------------------------------
+  Status:          FAIL
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: Unicode_SpecialChars
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           False is not true : Transcription failed: '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: WAV_16kHz
+----------------------------------------
+  Status:          FAIL
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+
+Test: WAV_16kHz
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           False is not true : Transcription failed: '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: WAV_44.1kHz
+----------------------------------------
+  Status:          FAIL
+  Test Duration:   0.01s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+
+Test: WAV_44.1kHz
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.01s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           False is not true : Transcription failed: '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: WAV_8kHz
+----------------------------------------
+  Status:          FAIL
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           '>' not supported between instances of 'MagicMock' and 'int'
+
+Test: WAV_8kHz
+----------------------------------------
+  Status:          ERROR
+  Test Duration:   0.00s
+  Audio Duration:  0.00s
+  Processing Time: 0.00s
+  RTF:             0.00x
+  Error:           False is not true : Transcription failed: '>' not supported between instances of 'MagicMock' and 'int'
+
+================================================================================
+End of Report
+================================================================================
