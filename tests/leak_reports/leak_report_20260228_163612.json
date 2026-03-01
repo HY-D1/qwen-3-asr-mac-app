@@ -1,0 +1,89 @@
+{
+  "timestamp": "20260228_163612",
+  "test_config": {
+    "long_running_duration": 30,
+    "batch_transcription_count": 50,
+    "streaming_cycles": 100,
+    "model_switch_count": 20,
+    "memory_growth_threshold": 0.1,
+    "sample_audio_duration": 5
+  },
+  "results": [
+    {
+      "test_name": "Thread Leak Detection",
+      "passed": true,
+      "baseline_memory_mb": 92.375,
+      "peak_memory_mb": 92.421875,
+      "final_memory_mb": 92.421875,
+      "memory_growth_pct": 0.050744248985115016,
+      "thread_delta": 0,
+      "fd_delta": 0,
+      "process_delta": 0,
+      "duration_seconds": 1.814770221710205,
+      "details": {
+        "duration_seconds": 1.814770221710205,
+        "memory_baseline_mb": 92.375,
+        "memory_peak_mb": 92.421875,
+        "memory_final_mb": 92.421875,
+        "memory_growth_mb": 0.046875,
+        "memory_growth_pct": 0.050744248985115016,
+        "thread_baseline": 8,
+        "thread_peak": 8,
+        "thread_final": 8,
+        "fd_baseline": 11,
+        "fd_peak": 11,
+        "fd_final": 11,
+        "snapshot_count": 7
+      }
+    },
+    {
+      "test_name": "Temp File Cleanup",
+      "passed": true,
+      "baseline_memory_mb": 0,
+      "peak_memory_mb": 0,
+      "final_memory_mb": 0,
+      "memory_growth_pct": 0,
+      "thread_delta": 0,
+      "fd_delta": 0,
+      "process_delta": 0,
+      "duration_seconds": 0,
+      "details": {
+        "files_created": 200,
+        "files_remaining": 0,
+        "files_cleaned": 200
+      }
+    },
+    {
+      "test_name": "Numpy Array Lifecycle",
+      "passed": true,
+      "baseline_memory_mb": 92.78125,
+      "peak_memory_mb": 103.75,
+      "final_memory_mb": 103.75,
+      "memory_growth_pct": 11.822162344223644,
+      "thread_delta": 0,
+      "fd_delta": 0,
+      "process_delta": 0,
+      "duration_seconds": 0.39403295516967773,
+      "details": {
+        "duration_seconds": 0.39403295516967773,
+        "memory_baseline_mb": 92.78125,
+        "memory_peak_mb": 103.75,
+        "memory_final_mb": 103.75,
+        "memory_growth_mb": 10.96875,
+        "memory_growth_pct": 11.822162344223644,
+        "thread_baseline": 8,
+        "thread_peak": 8,
+        "thread_final": 8,
+        "fd_baseline": 11,
+        "fd_peak": 11,
+        "fd_final": 11,
+        "snapshot_count": 7
+      }
+    }
+  ],
+  "summary": {
+    "total_tests": 3,
+    "passed": 3,
+    "failed": 0
+  }
+}

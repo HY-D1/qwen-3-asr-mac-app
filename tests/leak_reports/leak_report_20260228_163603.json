@@ -1,0 +1,45 @@
+{
+  "timestamp": "20260228_163603",
+  "test_config": {
+    "long_running_duration": 30,
+    "batch_transcription_count": 50,
+    "streaming_cycles": 100,
+    "model_switch_count": 20,
+    "memory_growth_threshold": 0.1,
+    "sample_audio_duration": 5
+  },
+  "results": [
+    {
+      "test_name": "File Descriptor Tracking",
+      "passed": true,
+      "baseline_memory_mb": 92.296875,
+      "peak_memory_mb": 92.671875,
+      "final_memory_mb": 92.671875,
+      "memory_growth_pct": 0.40629761300152356,
+      "thread_delta": 0,
+      "fd_delta": 0,
+      "process_delta": 0,
+      "duration_seconds": 0.5635049343109131,
+      "details": {
+        "duration_seconds": 0.5635049343109131,
+        "memory_baseline_mb": 92.296875,
+        "memory_peak_mb": 92.671875,
+        "memory_final_mb": 92.671875,
+        "memory_growth_mb": 0.375,
+        "memory_growth_pct": 0.40629761300152356,
+        "thread_baseline": 8,
+        "thread_peak": 8,
+        "thread_final": 8,
+        "fd_baseline": 11,
+        "fd_peak": 11,
+        "fd_final": 11,
+        "snapshot_count": 7
+      }
+    }
+  ],
+  "summary": {
+    "total_tests": 1,
+    "passed": 1,
+    "failed": 0
+  }
+}

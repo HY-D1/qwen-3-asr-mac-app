@@ -5,12 +5,12 @@
 # ║         Based on official Qwen3-ASR & mlx-qwen3-asr              ║
 # ╚══════════════════════════════════════════════════════════════════╝
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 if [ ! -d "backend/venv" ]; then
     echo "❌ Setup required"
     echo ""
-    echo "Please run SETUP.command first to install dependencies."
+    echo "Please run ./scripts/setup.command first to install dependencies."
     read -n 1 -s -r -p "Press any key to exit..."
     exit 1
 fi
