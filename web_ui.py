@@ -6,10 +6,29 @@ Gradio-based web interface (works in browser, no tkinter needed)
 
 import os
 import sys
-import tempfile
-import time
 import subprocess
+import warnings
 from pathlib import Path
+
+# Suppress HTTP request warnings from Gradio/Uvicorn
+import logging
+
+# Filter out "Invalid HTTP request received" warnings
+class HTTPWarningFilter(logging.Filter):
+    def filter(self, record):
+        # Filter out invalid HTTP request messages
+        if "Invalid HTTP request received" in str(record.getMessage()):
+            return False
+        return True
+
+# Apply filters to uvicorn loggers
+uvicorn_logger = logging.getLogger("uvicorn.error")
+uvicorn_logger.setLevel(logging.WARNING)
+uvicorn_logger.addFilter(HTTPWarningFilter())
+
+# Also filter gradio warnings
+logging.getLogger("gradio").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -72,7 +91,7 @@ def transcribe_with_c_binary(audio_file, model="small"):
         return None, f"C binary failed: {str(e)}"
 
 
-def transcribe_audio(audio_file, language="auto"):
+def transcribe_audio(audio_file, language="auto", model="0.6b"):
     """Transcribe audio file using available backends (C binary preferred)"""
     if audio_file is None:
         return "No audio file provided", "Error"
@@ -81,7 +100,7 @@ def transcribe_audio(audio_file, language="auto"):
         return f"File not found: {audio_file}", "Error"
     
     # Try C binary first (most reliable)
-    transcript, backend_info = transcribe_with_c_binary(audio_file)
+    transcript, backend_info = transcribe_with_c_binary(audio_file, model=model)
     if transcript:
         return transcript, backend_info
     
@@ -92,8 +111,8 @@ def transcribe_audio(audio_file, language="auto"):
         # Try MLX first
         try:
             import mlx_audio.stt as mlx_stt
-            model = mlx_stt.load("Qwen/Qwen3-ASR-0.6B")  # Use smaller model for speed
-            result = model.generate(audio_file, language=None if language == "auto" else language)
+            mlx_model = mlx_stt.load("Qwen/Qwen3-ASR-0.6B")  # Use smaller model for speed
+            result = mlx_model.generate(audio_file, language=None if language == "auto" else language)
             transcript = result.text if hasattr(result, 'text') else str(result)
             return transcript, "MLX (Apple Silicon)"
         except ImportError:
@@ -132,13 +151,13 @@ def reform_text(text, mode):
         return f"Error reforming text: {str(e)}"
 
 
-def process_audio(audio_file, language, reform_mode):
+def process_audio(audio_file, language, reform_mode, model="0.6b"):
     """Full pipeline: transcribe + reform"""
     if audio_file is None:
         return "Please upload an audio file", "", ""
     
     # Step 1: Transcribe
-    transcript, backend = transcribe_audio(audio_file, language)
+    transcript, backend = transcribe_audio(audio_file, language, model)
     
     if transcript.startswith("Error:") or backend == "Error":
         return transcript, "", ""
@@ -149,15 +168,15 @@ def process_audio(audio_file, language, reform_mode):
     else:
         reformed = transcript
     
-    # Get LLM info
-    llm_info = f"Backend: {backend} | LLM: {llm.backend_name}"
+    # Get LLM info with model used
+    llm_info = f"Backend: {backend} | Model: {model} | LLM: {llm.backend_name}"
     
     return transcript, reformed, llm_info
 
 
-def record_and_transcribe(audio, language, reform_mode):
+def record_and_transcribe(audio, language, reform_mode, model="0.6b"):
     """Handle recorded audio"""
-    return process_audio(audio, language, reform_mode)
+    return process_audio(audio, language, reform_mode, model)
 
 
 # Create Gradio interface
@@ -170,11 +189,22 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("### Settings")
+            
+            model = gr.Dropdown(
+                choices=[
+                    ("⚡ Fast (0.6B) - Quick results", "0.6b"),
+                    ("🎯 Accurate (1.7B) - Better quality", "1.7b")
+                ],
+                value="0.6b",
+                label="Transcription Model"
+            )
+            
             language = gr.Dropdown(
                 choices=["auto", "en", "zh", "ja", "ko", "es", "fr", "de"],
                 value="auto",
                 label="Language"
             )
+            
             reform_mode = gr.Dropdown(
                 choices=[
                     ("No reforming", "none"),
@@ -196,10 +226,13 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
             )
             
             gr.Markdown("""
-            **About AI Backends:**
-            - **C-Binary**: Fast local transcription (recommended)
+            **Model Info:**
+            - **0.6B**: Fast (~0.7x real-time), good accuracy
+            - **1.7B**: Slower, better accuracy for difficult audio
+            
+            **AI Backends:**
+            - **C-Binary**: Fast local transcription
             - **MLX**: Apple Silicon optimized
-            - **MLX-CLI**: Fallback Python backend
             """)
         
         with gr.Column(scale=2):
@@ -227,6 +260,7 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
                 lines=10,
                 show_copy_button=True
             )
+            copy_raw_btn = gr.Button("📋 Copy Raw Text", size="sm")
         
         with gr.Column():
             gr.Markdown("### ✨ AI-Reformed Text")
@@ -235,20 +269,90 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
                 lines=10,
                 show_copy_button=True
             )
+            copy_reformed_btn = gr.Button("📋 Copy Reformed Text", size="sm")
     
     info_output = gr.Textbox(label="Info", interactive=False)
     
-    # Event handlers
+    # Event handlers for transcription
     upload_btn.click(
         fn=process_audio,
-        inputs=[audio_input, language, reform_mode],
+        inputs=[audio_input, language, reform_mode, model],
         outputs=[raw_output, reformed_output, info_output]
     )
     
     record_btn.click(
         fn=record_and_transcribe,
-        inputs=[record_input, language, reform_mode],
+        inputs=[record_input, language, reform_mode, model],
         outputs=[raw_output, reformed_output, info_output]
+    )
+    
+    # JavaScript-based copy handlers (more reliable than built-in)
+    copy_raw_btn.click(
+        fn=None,
+        inputs=[raw_output],
+        outputs=[],
+        js="""
+        async (text) => {
+            if (!text) {
+                alert("No text to copy!");
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                // Visual feedback
+                const btn = document.activeElement;
+                const originalText = btn.innerText;
+                btn.innerText = "✅ Copied!";
+                setTimeout(() => btn.innerText = originalText, 2000);
+            } catch (err) {
+                // Fallback for older browsers
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+                const btn = document.activeElement;
+                const originalText = btn.innerText;
+                btn.innerText = "✅ Copied!";
+                setTimeout(() => btn.innerText = originalText, 2000);
+            }
+        }
+        """
+    )
+    
+    copy_reformed_btn.click(
+        fn=None,
+        inputs=[reformed_output],
+        outputs=[],
+        js="""
+        async (text) => {
+            if (!text) {
+                alert("No text to copy!");
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                // Visual feedback
+                const btn = document.activeElement;
+                const originalText = btn.innerText;
+                btn.innerText = "✅ Copied!";
+                setTimeout(() => btn.innerText = originalText, 2000);
+            } catch (err) {
+                // Fallback for older browsers
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+                const btn = document.activeElement;
+                const originalText = btn.innerText;
+                btn.innerText = "✅ Copied!";
+                setTimeout(() => btn.innerText = originalText, 2000);
+            }
+        }
+        """
     )
     
     gr.Markdown("""
@@ -257,6 +361,7 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
     - Use **Punctuate** mode to add proper punctuation and capitalization
     - Use **Summarize** mode to create a concise summary
     - Use **Clean up** mode to remove filler words (um, uh, like)
+    - Click **📋 Copy** buttons below each text box to copy results
     - Audio is processed locally - no data leaves your computer
     """)
 
@@ -282,6 +387,12 @@ if __name__ == "__main__":
     print("🚀 Starting Qwen3-ASR Pro Web UI...")
     print(f"📱 Open your browser and go to: http://localhost:{port}")
     print("")
+    
+    # Configure upload limits and queue settings to prevent HTTP errors
+    demo.queue(
+        max_size=20,  # Limit concurrent requests
+        default_concurrency_limit=1  # Process one at a time
+    )
     
     demo.launch(
         server_name="0.0.0.0",  # Allow access from other devices
