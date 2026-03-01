@@ -77,6 +77,18 @@ else
     echo "✅ PyTorch backend installed"
 fi
 
+# Install optional LLM dependencies for text refinement
+echo ""
+echo "🤖 Checking LLM text refinement support..."
+
+if [ "$OS" = "Darwin" ] && [ "$ARCH" = "arm64" ]; then
+    echo "  Installing mlx-lm for Apple Silicon (recommended)..."
+    pip install mlx-lm -q 2>/dev/null && echo "  ✅ mlx-lm installed" || echo "  ⚠️  mlx-lm install skipped (optional)"
+else
+    echo "  Note: For Intel Macs, install llama-cpp-python separately:"
+    echo "    CMAKE_ARGS='-DLLAMA_METAL=off' pip install llama-cpp-python --no-cache-dir"
+fi
+
 # Verify installation
 echo ""
 echo "🔍 Verifying installation..."
