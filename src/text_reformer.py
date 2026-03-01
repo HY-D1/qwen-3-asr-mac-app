@@ -166,8 +166,8 @@ class TextReformer:
     # Model configuration for 8GB RAM systems
     MODEL_CONFIG = {
         "mlx": {
-            "name": "mlx-community/Qwen2.5-3B-Instruct",
-            "description": "3B parameter model optimized for MLX",
+            "name": "mlx-community/Qwen2.5-3B-Instruct-4bit",
+            "description": "3B parameter model optimized for MLX (4-bit quantized, ~1.8GB)",
             "max_tokens": 2048,
             "temperature": 0.3,
         },

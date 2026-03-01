@@ -245,7 +245,7 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
 
 #### Classes
 1. **`TextReformer`** - LLM-based text reformation engine
-   - Uses Qwen2.5-3B-Instruct model (~2GB)
+   - Uses Qwen2.5-3B-Instruct-4bit model (~1.8GB)
    - Supports MLX (Apple Silicon) and llama.cpp (Intel) backends
    - 8GB RAM compatible
    - Methods:

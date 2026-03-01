@@ -85,7 +85,7 @@ The UI automatically adapts to your window size:
 
 ## 🤖 AI Text Refinement
 
-Qwen3-ASR Pro includes an optional LLM-powered text refinement feature using **Qwen2.5-3B-Instruct** - optimized for 8GB RAM systems.
+Qwen3-ASR Pro includes an optional LLM-powered text refinement feature using **Qwen2.5-3B-Instruct-4bit** - optimized for 8GB RAM systems.
 
 ### Features
 - **✨ Punctuate** - Add proper punctuation and capitalization
@@ -108,7 +108,7 @@ pip install mlx-lm          # For Apple Silicon (recommended)
 pip install llama-cpp-python # For Intel Macs
 ```
 
-The 3B parameter model (~2GB download) runs efficiently on 8GB RAM systems with MLX acceleration on Apple Silicon.
+The 4-bit quantized 3B parameter model (~1.8GB download) runs efficiently on 8GB RAM systems with MLX acceleration on Apple Silicon.
 
 ## 🎛️ Settings
 
