@@ -266,3 +266,6 @@ Portfolio/
 
 # Local copies
 **/qwen-3-asr-mac-app-main/**
+
+# Virtual environments (all variants)
+backend/venv*/
