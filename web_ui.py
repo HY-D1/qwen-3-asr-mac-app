@@ -95,26 +95,42 @@ def transcribe_with_c_binary(audio_file, model="small"):
             timeout=60
         )
         if result.returncode == 0:
-            # Extract transcript from stdout
-            # The C binary outputs to stdout, filter out debug messages
-            output_lines = result.stdout.strip().split('\n')
-            # Filter out debug/info lines (lines with ":" usually are debug)
+            # The C binary outputs transcript to STDERR, not stdout!
+            # stderr contains: Loading messages, Inference stats, AND the transcript
+            stderr_output = result.stderr.strip()
+            stdout_output = result.stdout.strip()
+            
+            # Parse stderr to find the transcript (actual output, not debug info)
+            lines = stderr_output.split('\n')
             transcript_lines = []
-            for line in output_lines:
+            
+            for line in lines:
                 line = line.strip()
-                # Skip debug/info lines
-                if line and not line.startswith(('Loading', 'Detected:', 'Inference:', 'Audio:', 'Model loaded')):
+                # Skip debug/info lines that start with known prefixes
+                if line and not any(line.startswith(prefix) for prefix in [
+                    'Loading', 'Detected:', 'Inference:', 'Audio:', 
+                    'Model loaded', 'qwen_asr', 'Usage:', 'Required:',
+                    'Options:', '  -', '--'
+                ]):
+                    # This is likely the transcript
                     transcript_lines.append(line)
             
-            transcript = ' '.join(transcript_lines)
+            transcript = ' '.join(transcript_lines).strip()
             
-            # If empty transcript but no error, might be no speech detected
-            if not transcript:
-                # Check stderr for clues
-                if "0 text tokens" in result.stderr:
-                    return "[No speech detected in audio]", "C-Binary"
+            # If no transcript in stderr, check stdout as fallback
+            if not transcript and stdout_output:
+                transcript = stdout_output
             
-            return transcript if transcript else result.stdout.strip(), "C-Binary"
+            # Check for "0 text tokens" which means no speech detected
+            if "0 text tokens" in stderr_output:
+                return "[No speech detected in audio]", "C-Binary"
+            
+            # Return transcript if found
+            if transcript:
+                return transcript, "C-Binary"
+            else:
+                # No transcript but also no error - could be empty audio
+                return "[No speech detected]", "C-Binary"
         else:
             return None, f"C binary error (code {result.returncode}): {result.stderr}"
     except subprocess.TimeoutExpired:
@@ -165,66 +181,11 @@ def transcribe_audio(audio_file, language="auto", model="0.6b"):
         print(f"   ❌ MLX failed: {e}")
     
     # Try PyTorch/qwen-asr (Intel Mac or any platform)
+    # NOTE: PyTorch backend is disabled because Qwen3-ASR uses a custom model architecture
+    # that is not supported by standard transformers. Use the C binary instead.
     print(f"\n🔍 Backend 3/4: PyTorch...")
-    try:
-        import torch
-        
-        device = "mps" if torch.backends.mps.is_available() else "cpu"
-        print(f"   Using device: {device}")
-        
-        # Try to use local model files first
-        local_model_path = os.path.join(base_dir, "assets", "c-asr", "qwen3-asr-0.6b")
-        
-        if os.path.exists(os.path.join(local_model_path, "model.safetensors")):
-            print(f"   Loading local model from: {local_model_path}")
-            from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
-            
-            processor = AutoProcessor.from_pretrained(local_model_path, local_files_only=True)
-            torch_model = AutoModelForSpeechSeq2Seq.from_pretrained(
-                local_model_path,
-                local_files_only=True,
-                torch_dtype=torch.float32,
-                low_cpu_mem_usage=True,
-                use_safetensors=True
-            )
-            torch_model.to(device)
-            
-            pipe = pipeline(
-                "automatic-speech-recognition",
-                model=torch_model,
-                tokenizer=processor.tokenizer,
-                feature_extractor=processor.feature_extractor,
-                max_new_tokens=128,
-                torch_dtype=torch.float32,
-                device=device,
-            )
-            
-            result = pipe(audio_file)
-            print(f"   ✅ Success using PyTorch (Local) backend")
-            return result["text"], "PyTorch (Local)"
-        else:
-            # Fall back to HuggingFace Hub
-            print(f"   Local model not found at: {local_model_path}")
-            print(f"   Trying HuggingFace Hub instead...")
-            from transformers import pipeline
-            
-            pipe = pipeline(
-                "automatic-speech-recognition",
-                model="Qwen/Qwen3-ASR-0.6B",
-                torch_dtype=torch.float32,
-                device=device,
-            )
-            
-            result = pipe(audio_file)
-            print(f"   ✅ Success using PyTorch (HF Hub) backend")
-            return result["text"], "PyTorch (HF Hub)"
-            
-    except ImportError as e:
-        errors.append(f"PyTorch: {str(e)}")
-        print(f"   ❌ PyTorch backend not available: {e}")
-    except Exception as e:
-        errors.append(f"PyTorch: {str(e)}")
-        print(f"   ❌ PyTorch failed: {e}")
+    print(f"   ⚠️ PyTorch backend is disabled - Qwen3-ASR requires custom C binary")
+    errors.append("PyTorch: Not supported (Qwen3-ASR uses custom architecture)")
     
     # Try MLX-CLI as last resort
     print(f"\n🔍 Backend 4/4: MLX-CLI...")

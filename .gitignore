@@ -130,6 +130,7 @@ coverage.xml
 htmlcov/
 .tox/
 .nox/
+/test_files
 
 # Test outputs
 test-results/
