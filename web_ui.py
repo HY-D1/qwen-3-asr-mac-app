@@ -84,12 +84,15 @@ def transcribe_with_c_binary(audio_file, model="small"):
     # Note: Don't use --silent as it suppresses output
     cmd = [c_binary, "-d", model_dir, "-i", audio_file]
     
+    print(f"   [C-Binary] Running: {' '.join(cmd)}")
+    print(f"   [C-Binary] Timeout: 60s")
+    
     try:
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=300
+            timeout=60
         )
         if result.returncode == 0:
             # Extract transcript from stdout
@@ -115,32 +118,39 @@ def transcribe_with_c_binary(audio_file, model="small"):
         else:
             return None, f"C binary error (code {result.returncode}): {result.stderr}"
     except subprocess.TimeoutExpired:
-        return None, "Transcription timeout (300s exceeded)"
+        return None, "Transcription timeout (60s exceeded - C binary took too long)"
     except Exception as e:
         return None, f"C binary failed: {str(e)}"
 
 
 def transcribe_audio(audio_file, language="auto", model="0.6b"):
     """Transcribe audio file using available backends (C binary preferred)"""
+    # Define base_dir at function start for all backends to use
+    base_dir = os.path.dirname(__file__)
+    
     if audio_file is None:
         return "No audio file provided", "Error"
     
     if not os.path.exists(audio_file):
         return f"File not found: {audio_file}", "Error"
     
+    print(f"\n🎙️ Transcribing: {os.path.basename(audio_file)}")
+    print(f"   Language: {language} | Model: {model}")
+    
     errors = []
     
     # Try C binary first (most reliable)
-    print(f"🎙️ Trying C binary backend...")
+    print(f"\n🔍 Backend 1/4: C-Binary...")
     transcript, backend_info = transcribe_with_c_binary(audio_file, model=model)
     if transcript:
+        print(f"   ✅ Success using C-Binary backend")
         return transcript, backend_info
     else:
         errors.append(f"C-Binary: {backend_info}")
-        print(f"   ⚠️ C binary failed: {backend_info}")
+        print(f"   ❌ C-Binary failed: {backend_info}")
     
     # Try MLX (Apple Silicon only)
-    print(f"🎙️ Trying MLX backend...")
+    print(f"\n🔍 Backend 2/4: MLX (Apple Silicon)...")
     try:
         import mlx_audio.stt as mlx_stt
         mlx_model = mlx_stt.load("Qwen/Qwen3-ASR-0.6B")
@@ -149,13 +159,13 @@ def transcribe_audio(audio_file, language="auto", model="0.6b"):
         return transcript, "MLX (Apple Silicon)"
     except ImportError:
         errors.append("MLX: mlx_audio not installed (Apple Silicon only)")
-        print(f"   ⚠️ MLX not available (Apple Silicon only)")
+        print(f"   ❌ MLX not available (Apple Silicon only)")
     except Exception as e:
         errors.append(f"MLX: {str(e)}")
-        print(f"   ⚠️ MLX failed: {e}")
+        print(f"   ❌ MLX failed: {e}")
     
     # Try PyTorch/qwen-asr (Intel Mac or any platform)
-    print(f"🎙️ Trying PyTorch backend...")
+    print(f"\n🔍 Backend 3/4: PyTorch...")
     try:
         import torch
         
@@ -190,10 +200,12 @@ def transcribe_audio(audio_file, language="auto", model="0.6b"):
             )
             
             result = pipe(audio_file)
+            print(f"   ✅ Success using PyTorch (Local) backend")
             return result["text"], "PyTorch (Local)"
         else:
             # Fall back to HuggingFace Hub
-            print(f"   Local model not found, trying HuggingFace Hub...")
+            print(f"   Local model not found at: {local_model_path}")
+            print(f"   Trying HuggingFace Hub instead...")
             from transformers import pipeline
             
             pipe = pipeline(
@@ -204,17 +216,18 @@ def transcribe_audio(audio_file, language="auto", model="0.6b"):
             )
             
             result = pipe(audio_file)
+            print(f"   ✅ Success using PyTorch (HF Hub) backend")
             return result["text"], "PyTorch (HF Hub)"
             
     except ImportError as e:
         errors.append(f"PyTorch: {str(e)}")
-        print(f"   ⚠️ PyTorch backend not available: {e}")
+        print(f"   ❌ PyTorch backend not available: {e}")
     except Exception as e:
         errors.append(f"PyTorch: {str(e)}")
-        print(f"   ⚠️ PyTorch failed: {e}")
+        print(f"   ❌ PyTorch failed: {e}")
     
     # Try MLX-CLI as last resort
-    print(f"🎙️ Trying MLX-CLI backend...")
+    print(f"\n🔍 Backend 4/4: MLX-CLI...")
     try:
         # First check if module exists
         import importlib.util
@@ -226,22 +239,31 @@ def transcribe_audio(audio_file, language="auto", model="0.6b"):
         if language != "auto":
             cmd.extend(['--language', language])
         
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        print(f"   [MLX-CLI] Running: {' '.join(cmd)}")
+        print(f"   [MLX-CLI] Timeout: 60s")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         if result.returncode == 0:
+            print(f"   ✅ Success using MLX-CLI backend")
             return result.stdout.strip(), "MLX-CLI"
         else:
             errors.append(f"MLX-CLI: {result.stderr}")
-            print(f"   ⚠️ MLX-CLI failed: {result.stderr[:100]}")
+            print(f"   ❌ MLX-CLI failed: {result.stderr[:100]}")
+    except subprocess.TimeoutExpired:
+        errors.append("MLX-CLI: Timeout (60s exceeded)")
+        print(f"   ❌ MLX-CLI timeout (60s exceeded)")
     except ImportError as e:
         errors.append(f"MLX-CLI: {str(e)}")
-        print(f"   ⚠️ MLX-CLI not available")
+        print(f"   ❌ MLX-CLI not available")
     except Exception as e:
         errors.append(f"MLX-CLI: {str(e)}")
-        print(f"   ⚠️ MLX-CLI error: {e}")
+        print(f"   ❌ MLX-CLI error: {e}")
     
     # All backends failed
     error_summary = " | ".join(errors)
-    print(f"\n❌ All backends failed: {error_summary}")
+    print(f"\n❌ All backends failed!")
+    print(f"   Errors summary:")
+    for i, err in enumerate(errors, 1):
+        print(f"     {i}. {err}")
     return f"No transcription backend available. Errors: {error_summary}", "Error"
 
 
@@ -321,12 +343,57 @@ def stream_record_and_transcribe(audio, language, reform_mode, model, enable_rea
     Stream transcription results as they come in.
     This is a generator that yields intermediate results for real-time display.
     """
+    # Debug logging: Print what path is being received
+    print(f"[DEBUG] stream_record_and_transcribe called with audio: {audio}")
+    print(f"[DEBUG] audio type: {type(audio)}")
+    
+    # Check if audio is None
     if audio is None:
+        print("[DEBUG] Audio is None - no recording detected")
         yield {
             live_output: "⚠️ No audio recorded. Please record audio first.",
             raw_output: "",
             reformed_output: "",
             info_output: "Error: No audio provided"
+        }
+        return
+    
+    # Handle Gradio's temporary files - check file existence
+    if isinstance(audio, str):
+        # File info logging
+        file_exists = os.path.exists(audio)
+        file_size = os.path.getsize(audio) if file_exists else 0
+        print(f"[DEBUG] File exists: {file_exists}, File size: {file_size} bytes")
+        print(f"[DEBUG] File path: {audio}")
+        
+        # Better error messages - distinguish between "no audio" and "file not found"
+        if not file_exists:
+            print(f"[DEBUG] File not found at path: {audio}")
+            yield {
+                live_output: "⚠️ Audio file not found. The temporary file may have been deleted.",
+                raw_output: "",
+                reformed_output: "",
+                info_output: f"Error: File not found - {audio}"
+            }
+            return
+        
+        if file_size == 0:
+            print(f"[DEBUG] File exists but is empty: {audio}")
+            yield {
+                live_output: "⚠️ Audio file is empty. Please try recording again.",
+                raw_output: "",
+                reformed_output: "",
+                info_output: "Error: Empty audio file"
+            }
+            return
+    else:
+        # Handle unexpected type
+        print(f"[DEBUG] Unexpected audio type: {type(audio)}, value: {audio}")
+        yield {
+            live_output: "⚠️ Invalid audio data received.",
+            raw_output: "",
+            reformed_output: "",
+            info_output: f"Error: Invalid audio type - {type(audio)}"
         }
         return
     
