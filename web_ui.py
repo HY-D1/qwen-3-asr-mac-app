@@ -80,8 +80,9 @@ def transcribe_with_c_binary(audio_file, model="small"):
     if not os.path.exists(model_dir):
         return None, f"Model directory not found: {model_dir}"
     
-    # Build command: qwen_asr -d <model_dir> -i <audio_file> --silent
-    cmd = [c_binary, "-d", model_dir, "-i", audio_file, "--silent"]
+    # Build command: qwen_asr -d <model_dir> -i <audio_file>
+    # Note: Don't use --silent as it suppresses output
+    cmd = [c_binary, "-d", model_dir, "-i", audio_file]
     
     try:
         result = subprocess.run(
@@ -91,7 +92,26 @@ def transcribe_with_c_binary(audio_file, model="small"):
             timeout=300
         )
         if result.returncode == 0:
-            return result.stdout.strip(), "C-Binary"
+            # Extract transcript from stdout
+            # The C binary outputs to stdout, filter out debug messages
+            output_lines = result.stdout.strip().split('\n')
+            # Filter out debug/info lines (lines with ":" usually are debug)
+            transcript_lines = []
+            for line in output_lines:
+                line = line.strip()
+                # Skip debug/info lines
+                if line and not line.startswith(('Loading', 'Detected:', 'Inference:', 'Audio:', 'Model loaded')):
+                    transcript_lines.append(line)
+            
+            transcript = ' '.join(transcript_lines)
+            
+            # If empty transcript but no error, might be no speech detected
+            if not transcript:
+                # Check stderr for clues
+                if "0 text tokens" in result.stderr:
+                    return "[No speech detected in audio]", "C-Binary"
+            
+            return transcript if transcript else result.stdout.strip(), "C-Binary"
         else:
             return None, f"C binary error (code {result.returncode}): {result.stderr}"
     except subprocess.TimeoutExpired:
@@ -108,26 +128,100 @@ def transcribe_audio(audio_file, language="auto", model="0.6b"):
     if not os.path.exists(audio_file):
         return f"File not found: {audio_file}", "Error"
     
+    errors = []
+    
     # Try C binary first (most reliable)
+    print(f"🎙️ Trying C binary backend...")
     transcript, backend_info = transcribe_with_c_binary(audio_file, model=model)
     if transcript:
         return transcript, backend_info
+    else:
+        errors.append(f"C-Binary: {backend_info}")
+        print(f"   ⚠️ C binary failed: {backend_info}")
     
-    # Fall back to Python backends
-    last_error = backend_info  # Store C binary error message
-    
+    # Try MLX (Apple Silicon only)
+    print(f"🎙️ Trying MLX backend...")
     try:
-        # Try MLX first
-        try:
-            import mlx_audio.stt as mlx_stt
-            mlx_model = mlx_stt.load("Qwen/Qwen3-ASR-0.6B")  # Use smaller model for speed
-            result = mlx_model.generate(audio_file, language=None if language == "auto" else language)
-            transcript = result.text if hasattr(result, 'text') else str(result)
-            return transcript, "MLX (Apple Silicon)"
-        except ImportError:
-            pass
+        import mlx_audio.stt as mlx_stt
+        mlx_model = mlx_stt.load("Qwen/Qwen3-ASR-0.6B")
+        result = mlx_model.generate(audio_file, language=None if language == "auto" else language)
+        transcript = result.text if hasattr(result, 'text') else str(result)
+        return transcript, "MLX (Apple Silicon)"
+    except ImportError:
+        errors.append("MLX: mlx_audio not installed (Apple Silicon only)")
+        print(f"   ⚠️ MLX not available (Apple Silicon only)")
+    except Exception as e:
+        errors.append(f"MLX: {str(e)}")
+        print(f"   ⚠️ MLX failed: {e}")
+    
+    # Try PyTorch/qwen-asr (Intel Mac or any platform)
+    print(f"🎙️ Trying PyTorch backend...")
+    try:
+        import torch
         
-        # Fall back to CLI
+        device = "mps" if torch.backends.mps.is_available() else "cpu"
+        print(f"   Using device: {device}")
+        
+        # Try to use local model files first
+        local_model_path = os.path.join(base_dir, "assets", "c-asr", "qwen3-asr-0.6b")
+        
+        if os.path.exists(os.path.join(local_model_path, "model.safetensors")):
+            print(f"   Loading local model from: {local_model_path}")
+            from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+            
+            processor = AutoProcessor.from_pretrained(local_model_path, local_files_only=True)
+            torch_model = AutoModelForSpeechSeq2Seq.from_pretrained(
+                local_model_path,
+                local_files_only=True,
+                torch_dtype=torch.float32,
+                low_cpu_mem_usage=True,
+                use_safetensors=True
+            )
+            torch_model.to(device)
+            
+            pipe = pipeline(
+                "automatic-speech-recognition",
+                model=torch_model,
+                tokenizer=processor.tokenizer,
+                feature_extractor=processor.feature_extractor,
+                max_new_tokens=128,
+                torch_dtype=torch.float32,
+                device=device,
+            )
+            
+            result = pipe(audio_file)
+            return result["text"], "PyTorch (Local)"
+        else:
+            # Fall back to HuggingFace Hub
+            print(f"   Local model not found, trying HuggingFace Hub...")
+            from transformers import pipeline
+            
+            pipe = pipeline(
+                "automatic-speech-recognition",
+                model="Qwen/Qwen3-ASR-0.6B",
+                torch_dtype=torch.float32,
+                device=device,
+            )
+            
+            result = pipe(audio_file)
+            return result["text"], "PyTorch (HF Hub)"
+            
+    except ImportError as e:
+        errors.append(f"PyTorch: {str(e)}")
+        print(f"   ⚠️ PyTorch backend not available: {e}")
+    except Exception as e:
+        errors.append(f"PyTorch: {str(e)}")
+        print(f"   ⚠️ PyTorch failed: {e}")
+    
+    # Try MLX-CLI as last resort
+    print(f"🎙️ Trying MLX-CLI backend...")
+    try:
+        # First check if module exists
+        import importlib.util
+        spec = importlib.util.find_spec("mlx_qwen3_asr")
+        if spec is None:
+            raise ImportError("mlx_qwen3_asr module not found")
+        
         cmd = [sys.executable, '-m', 'mlx_qwen3_asr', audio_file, '--stdout-only']
         if language != "auto":
             cmd.extend(['--language', language])
@@ -136,13 +230,19 @@ def transcribe_audio(audio_file, language="auto", model="0.6b"):
         if result.returncode == 0:
             return result.stdout.strip(), "MLX-CLI"
         else:
-            last_error = f"MLX-CLI error: {result.stderr}"
-            
+            errors.append(f"MLX-CLI: {result.stderr}")
+            print(f"   ⚠️ MLX-CLI failed: {result.stderr[:100]}")
+    except ImportError as e:
+        errors.append(f"MLX-CLI: {str(e)}")
+        print(f"   ⚠️ MLX-CLI not available")
     except Exception as e:
-        last_error = f"Python backends failed: {str(e)}"
+        errors.append(f"MLX-CLI: {str(e)}")
+        print(f"   ⚠️ MLX-CLI error: {e}")
     
     # All backends failed
-    return f"No transcription backend available. Last error: {last_error}", "Error"
+    error_summary = " | ".join(errors)
+    print(f"\n❌ All backends failed: {error_summary}")
+    return f"No transcription backend available. Errors: {error_summary}", "Error"
 
 
 def reform_text(text, mode):

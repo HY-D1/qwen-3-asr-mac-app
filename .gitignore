@@ -248,5 +248,21 @@ scripts/dev_*.sh
 *.old
 
 # Project-specific
-cli_app.py
-web_ui.py
+# Note: cli_app.py and web_ui.py were temporarily disabled but now enabled
+# cli_app.py
+# web_ui.py
+
+# Generated test reports (should be regenerated, not committed)
+llm_test_report_*.txt
+tests/*_report.txt
+tests/reports/*.txt
+!tests/reports/.gitkeep
+
+# Debug files
+debug_*.py
+
+# Temporary analysis files
+Portfolio/
+
+# Local copies
+**/qwen-3-asr-mac-app-main/**
