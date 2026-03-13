@@ -1029,12 +1029,20 @@ class RuleBasedBackend:
         """Enhanced summary extraction"""
         import re
         
+        text = text.strip()
+        if not text:
+            return ""
+        
         # Split into sentences
-        sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+        sentences = re.split(r'(?<=[.!?])\s+', text)
         sentences = [s.strip() for s in sentences if s.strip()]
         
         if not sentences:
-            return text[:200] + "..." if len(text) > 200 else text
+            return ""
+        
+        # If text is short, return first sentence
+        if len(sentences) <= 2:
+            return sentences[0] if sentences else text
         
         # Score sentences by importance
         def score_sentence(sent):
@@ -1071,8 +1079,10 @@ class RuleBasedBackend:
         scored = [(s, score_sentence(s)) for s in sentences]
         scored.sort(key=lambda x: x[1], reverse=True)
         
-        # Take top sentences (up to 3 or 20% of total)
+        # Take top sentences (up to 3 or 20% of total, or at least 1)
         num_to_take = min(3, max(1, len(sentences) // 5))
+        if len(sentences) >= 5:
+            num_to_take = max(2, num_to_take)  # At least 2 for longer texts
         top_sentences = [s[0] for s in scored[:num_to_take]]
         
         # Restore original order
@@ -1084,11 +1094,15 @@ class RuleBasedBackend:
         """Extract key points as bullets"""
         import re
         
-        sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+        text = text.strip()
+        if not text:
+            return ""
+        
+        sentences = re.split(r'(?<=[.!?])\s+', text)
         sentences = [s.strip() for s in sentences if s.strip()]
         
         if not sentences:
-            return "• " + text[:200] if len(text) > 200 else "• " + text
+            return ""
         
         # Look for key sentences
         key_sentences = []
