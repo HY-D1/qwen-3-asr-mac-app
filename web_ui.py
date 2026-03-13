@@ -43,6 +43,7 @@ except ImportError:
     import gradio as gr
 
 from simple_llm import SimpleLLM
+from constants import RECORDINGS_DIR
 
 # Global LLM instance - will try Ollama first
 print("🤖 Initializing LLM backend...")
@@ -271,6 +272,23 @@ def record_and_transcribe(audio, language, reform_mode, model="0.6b"):
     return process_audio(audio, language, reform_mode, model)
 
 
+def process_upload_with_save(audio_file, language, reform_mode, model="0.6b"):
+    """Process uploaded audio file with auto-save"""
+    # Auto-save the uploaded file
+    saved_path = None
+    if audio_file and os.path.exists(audio_file):
+        saved_path = save_recording_to_disk(audio_file)
+    
+    # Process the audio
+    transcript, reformed, info = process_audio(audio_file, language, reform_mode, model)
+    
+    # Add saved file info to the info output
+    if saved_path and info and not info.startswith("Error"):
+        info = f"{info} | 💾 Saved: {os.path.basename(saved_path)}"
+    
+    return transcript, reformed, info
+
+
 def simulate_streaming_transcript(full_transcript, chunk_size=3):
     """
     Simulate real-time streaming by splitting transcript into chunks.
@@ -299,6 +317,37 @@ def simulate_streaming_transcript(full_transcript, chunk_size=3):
     return chunks
 
 
+def save_recording_to_disk(source_path):
+    """
+    Save a recording to the recordings directory.
+    
+    Args:
+        source_path: Path to the source audio file
+        
+    Returns:
+        Path to the saved file, or None if saving failed
+    """
+    try:
+        import shutil
+        from datetime import datetime
+        
+        # Create recordings directory if it doesn't exist
+        os.makedirs(RECORDINGS_DIR, exist_ok=True)
+        
+        # Generate timestamped filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        dest_filename = f"live_web_{timestamp}.wav"
+        dest_path = os.path.join(RECORDINGS_DIR, dest_filename)
+        
+        # Copy the file
+        shutil.copy2(source_path, dest_path)
+        print(f"[INFO] Recording saved to: {dest_path}")
+        return dest_path
+    except Exception as e:
+        print(f"[ERROR] Failed to save recording: {e}")
+        return None
+
+
 def stream_record_and_transcribe(audio, language, reform_mode, model, enable_realtime, progress=gr.Progress()):
     """
     Stream transcription results as they come in.
@@ -307,6 +356,9 @@ def stream_record_and_transcribe(audio, language, reform_mode, model, enable_rea
     # Debug logging: Print what path is being received
     print(f"[DEBUG] stream_record_and_transcribe called with audio: {audio}")
     print(f"[DEBUG] audio type: {type(audio)}")
+    
+    # Variable to track saved file path
+    saved_audio_path = None
     
     # Check if audio is None
     if audio is None:
@@ -347,6 +399,10 @@ def stream_record_and_transcribe(audio, language, reform_mode, model, enable_rea
                 info_output: "Error: Empty audio file"
             }
             return
+        
+        # Auto-save the recording to the recordings directory
+        saved_audio_path = save_recording_to_disk(audio)
+        
     else:
         # Handle unexpected type
         print(f"[DEBUG] Unexpected audio type: {type(audio)}, value: {audio}")
@@ -361,6 +417,12 @@ def stream_record_and_transcribe(audio, language, reform_mode, model, enable_rea
     if not enable_realtime:
         # Non-streaming mode - just do regular processing
         transcript, reformed, info = process_audio(audio, language, reform_mode, model)
+        
+        # Add saved file info to the info output
+        saved_info = f" | 💾 Saved: {os.path.basename(saved_audio_path)}" if saved_audio_path else ""
+        if info and not info.startswith("Error"):
+            info = f"{info}{saved_info}"
+        
         yield {
             live_output: "✅ Transcription complete (real-time mode disabled)",
             raw_output: transcript,
@@ -442,18 +504,24 @@ def stream_record_and_transcribe(audio, language, reform_mode, model, enable_rea
             
             final_reformed = reformed_chunks[-1].replace("📝 ", "") if reformed_chunks else reformed
             
+            # Build info message with saved file info
+            saved_info = f" | 💾 Saved: {os.path.basename(saved_audio_path)}" if saved_audio_path else ""
+            
             yield {
                 live_output: f"✅ Transcription complete!\n\n{final_chunk}",
                 raw_output: transcript,
                 reformed_output: reformed,
-                info_output: f"✅ Complete | Backend: {backend} | Model: {model} | LLM: {llm.backend_name}"
+                info_output: f"✅ Complete | Backend: {backend} | Model: {model} | LLM: {llm.backend_name}{saved_info}"
             }
         else:
+            # Build info message with saved file info
+            saved_info = f" | 💾 Saved: {os.path.basename(saved_audio_path)}" if saved_audio_path else ""
+            
             yield {
                 live_output: f"✅ Transcription complete!\n\n{final_chunk}",
                 raw_output: transcript,
                 reformed_output: "(No reformation applied)",
-                info_output: f"✅ Complete | Backend: {backend} | Model: {model} | LLM: Not used"
+                info_output: f"✅ Complete | Backend: {backend} | Model: {model} | LLM: Not used{saved_info}"
             }
             
     except Exception as e:
@@ -568,6 +636,8 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
         
         with gr.Column(scale=2):
             with gr.Tab("📁 Upload File"):
+                gr.Markdown("Upload an audio file for transcription. Uploaded files are auto-saved to `~/Documents/Qwen3-ASR-Recordings/`.")
+                
                 audio_input = gr.Audio(
                     type="filepath",
                     label="Upload Audio (WAV, MP3, M4A, etc.)"
@@ -575,7 +645,7 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
                 upload_btn = gr.Button("🚀 Transcribe & Reform", variant="primary")
             
             with gr.Tab("🎤 Record Audio"):
-                gr.Markdown("Click 'Record' to start recording from microphone. When real-time mode is enabled, you'll see live transcript updates during processing.")
+                gr.Markdown("Click 'Record' to start recording from microphone. All recordings are auto-saved to `~/Documents/Qwen3-ASR-Recordings/`. When real-time mode is enabled, you'll see live transcript updates during processing.")
                 
                 record_input = gr.Audio(
                     sources=["microphone"],
@@ -619,7 +689,7 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
     
     # Event handlers for transcription
     upload_btn.click(
-        fn=process_audio,
+        fn=process_upload_with_save,
         inputs=[audio_input, language, reform_mode, model],
         outputs=[raw_output, reformed_output, info_output]
     )
@@ -717,6 +787,7 @@ with gr.Blocks(title="Qwen3-ASR Pro", theme=gr.themes.Soft()) as demo:
     gr.Markdown("""
     ---
     ### 💡 Tips
+    - All recordings and uploads are **auto-saved** to `~/Documents/Qwen3-ASR-Recordings/`
     - Use **Punctuate** mode to add proper punctuation and capitalization
     - Use **Summarize** mode to create a concise summary
     - Use **Clean up** mode to remove filler words (um, uh, like)

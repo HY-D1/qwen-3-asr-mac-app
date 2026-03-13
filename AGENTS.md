@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Qwen3-ASR Pro** is a professional speech-to-text application for macOS with real-time streaming transcription, AI-powered text refinement, and a responsive Tkinter-based UI. It supports both Apple Silicon (MLX acceleration) and Intel Macs (PyTorch backend).
+**Qwen3-ASR Pro** is a professional speech-to-text application for macOS with real-time streaming transcription, AI-powered text refinement, and multiple UI options (Tkinter GUI, Web UI, and CLI). It supports both Apple Silicon (MLX acceleration) and Intel Macs (PyTorch backend).
 
 - **Version:** 3.3.0
 - **License:** MIT (Copyright 2026 HY-D1)
@@ -11,13 +11,15 @@
 
 ### Key Features
 - **🎓 Live Mode** - Real-time transcription with word-by-word output (~2s delay)
-- **🤖 AI Text Refinement** - LLM-powered text reformation using Qwen2.5-3B (8GB RAM compatible)
-- **📁 Upload Mode** - Batch processing for file uploads with 1.7B model
+- **⚡ Fast Mode** - Batch processing for quick recordings
+- **🤖 AI Text Refinement** - LLM-powered text reformation using Qwen2.5-3B or Ollama (8GB RAM compatible)
 - **📁 Auto-Save** - Raw audio automatically saved to `~/Documents/Qwen3-ASR-Recordings/`
-- **📱 Responsive UI** - Adapts to any window size (desktop/compact/mobile)
+- **📱 Multiple Interfaces** - Tkinter GUI (main), Gradio Web UI, CLI
 - **🎚️ Smart Silence Detection** - Adjustable auto-stop (0.5s - 60s)
 - **⚡ MLX Acceleration** - Optimized for Apple Silicon (M1/M2/M3/M4)
 - **🌍 Multi-language** - Supports 50+ languages with auto-detection
+
+---
 
 ## Project Structure
 
@@ -25,94 +27,112 @@
 qwen-3-asr-mac-app-main/
 ├── src/                       # Python source code
 │   ├── __init__.py           # Package init, version 3.3.0
-│   ├── main.py               # Entry point
-│   ├── app.py                # Main application (~2000 lines)
+│   ├── main.py               # Entry point (imports from app.py)
+│   ├── app.py                # Main Tkinter application (~2200 lines)
 │   ├── constants.py          # Colors, settings, paths
-│   ├── text_reformer.py      # LLM text refinement engine
-│   ├── core/                 # (empty - reserved)
-│   └── ui/                   # (empty - reserved)
-├── scripts/                   # Shell scripts
-│   ├── launch.command        # Launch application
-│   └── setup.command         # Installation script
+│   ├── text_reformer.py      # LLM text refinement engine (MLX-based)
+│   └── simple_llm.py         # Alternative LLM with Ollama/OpenAI backends
+├── scripts/                   # Shell scripts (all .command files for macOS)
+│   ├── launch.command        # Launch main Tkinter application
+│   ├── launch_web.command    # Launch Gradio web interface
+│   ├── launch_cli.command    # Launch CLI interactive mode
+│   ├── setup.command         # Installation script
+│   ├── install_llm.command   # Install LLM dependencies
+│   ├── setup_ollama.command  # Setup Ollama for AI refinement
+│   ├── kill_servers.command  # Kill running servers
+│   └── stop_ollama.command   # Stop Ollama service
 ├── assets/                    # Resources
-│   ├── c-asr/                # C implementation
+│   ├── c-asr/                # C implementation for live streaming
 │   │   ├── qwen_asr         # Pre-built binary
-│   │   ├── *.c, *.h         # C source files
-│   │   ├── Makefile         # Build configuration
-│   │   ├── download_model.sh
-│   │   ├── qwen3-asr-0.6b/  # Model directory
-│   │   ├── qwen3-asr-1.7b/  # Model directory
-│   │   └── samples/         # Test audio files
+│   │   ├── *.c, *.h         # C source files (C99)
+│   │   ├── Makefile         # Build configuration (Apple Accelerate)
+│   │   ├── download_model.sh # Model download script
+│   │   ├── qwen3-asr-0.6b/  # 0.6B model directory
+│   │   ├── qwen3-asr-1.7b/  # 1.7B model directory
+│   │   └── samples/         # Test audio files (JFK speech, etc.)
 │   └── models/              # Python ML models (downloaded)
 ├── backend/                   # Python virtual environment
 │   └── venv/                 # Created by setup.command
-├── tests/                     # Comprehensive test suite
+├── tests/                     # Comprehensive test suite (40+ test files)
 │   ├── test_ui.py            # UI component tests
-│   ├── test_live_streaming.py
 │   ├── test_live_streaming_final.py
 │   ├── test_models.py
 │   ├── test_memory_leaks.py
 │   ├── test_integration.py
-│   ├── test_error_handling.py
-│   ├── test_file_io.py
-│   ├── test_macos_compat.py
-│   ├── test_recording_vad.py
-│   ├── test_batch_mode.py
-│   ├── test_user_workflows.py
-│   ├── README.md             # Test documentation
-│   ├── LIVE_STREAMING_FIX_REPORT.md
-│   └── assets/               # Test audio samples
+│   ├── test_llm_reforming.py
+│   ├── test_transcription_backends.py
+│   ├── test_webui_integration.py
+│   ├── test_cli_functionality.py
+│   ├── test_performance_benchmarks.py
+│   ├── test_edge_cases_real.py
+│   ├── conftest.py           # Pytest configuration
+│   ├── assets/               # Test audio samples
+│   └── leak_reports/         # Memory leak test reports
 ├── docs/                      # Documentation
 │   └── M1_PRO_SETUP.md       # Apple Silicon setup guide
-├── README.md                  # User documentation
-├── LICENSE                    # MIT License
-└── .gitignore                 # Git ignore rules
+├── web_ui.py                 # Gradio-based web interface
+├── cli_app.py                # Command-line interface
+├── README.md                 # User documentation
+├── QUICK_START.md            # Quick start guide
+├── PROJECT_DESIGN.md         # System architecture document
+├── AGENTS.md                 # This file
+├── LICENSE                   # MIT License
+└── .gitignore                # Git ignore rules
 ```
+
+---
 
 ## Technology Stack
 
 ### Core Technologies
 - **Python 3.12+** - Main application language
-- **Tkinter** - GUI framework (light theme)
+- **Tkinter** - Main GUI framework (light theme, ~2200 lines)
+- **Gradio** - Web UI framework
 - **NumPy** - Audio processing
-- **SoundDevice** - Audio I/O
+- **SoundDevice** - Audio I/O for recording
 - **Wave** - Audio file handling
 
-### ML Backends (Auto-detected)
-1. **MLX-Audio** (preferred on Apple Silicon)
+### ML Backends (Auto-detected in priority order)
+1. **C Binary** (preferred for live streaming)
+   - Pure C99 implementation at `assets/c-asr/qwen_asr`
+   - Uses Apple Accelerate framework (BLAS)
+   - Fastest for live streaming transcription
+   
+2. **MLX-Audio** (preferred on Apple Silicon for batch)
    - `mlx_audio.stt` module
-   - Fastest performance
-2. **MLX-CLI** (fallback)
+   - Fastest batch processing
+   
+3. **MLX-CLI** (fallback)
    - `python -m mlx_qwen3_asr`
    - Subprocess-based
-3. **PyTorch** (Intel Mac)
+   
+4. **PyTorch** (Intel Mac)
    - `qwen_asr` package
    - MPS acceleration on Apple Silicon
+
+### LLM Backends for Text Refinement
+1. **Ollama** (recommended, free)
+   - Local Qwen models (1.8B, 4B, 7B)
+   - Requires `ollama serve` running
+   
+2. **MLX-LM** (Apple Silicon)
+   - `mlx-community/Qwen2.5-3B-Instruct-4bit`
+   - ~1.8GB download, 8GB RAM compatible
+   
+3. **OpenAI API** (optional)
+   - Cloud-based, requires API key
+   
+4. **Rule-based** (fallback)
+   - Always works, no dependencies
 
 ### C Implementation
 - **Language:** C99
 - **Build:** GCC with Make
 - **Acceleration:** Apple Accelerate (macOS) / OpenBLAS (Linux)
-- **Binary:** `assets/c-asr/qwen_asr`
-- **Purpose:** Live streaming transcription
+- **Binary:** `assets/c-asr/qwen_asr` (pre-built included)
+- **Purpose:** Live streaming transcription with low latency
 
-### Dependencies (Runtime)
-```python
-# Core (always required)
-- sounddevice
-- numpy
-
-# Apple Silicon
-- mlx-qwen3-asr
-- mlx-audio
-
-# Intel Mac
-- qwen-asr
-- torch
-
-# Optional
-- librosa  # For audio duration
-```
+---
 
 ## Build and Run Commands
 
@@ -124,17 +144,31 @@ qwen-3-asr-mac-app-main/
 - Installs platform-specific dependencies
 - Detects Apple Silicon vs Intel Mac
 
-### Launch Application
+### Launch Main Application (Tkinter)
 ```bash
 ./scripts/launch.command
 ```
-- Activates virtual environment
-- Runs `python src/main.py`
+
+### Launch Web UI (Gradio)
+```bash
+./scripts/launch_web.command
+```
+- Opens browser at `http://localhost:7860`
+- Auto-detects free ports if 7860 is in use
+
+### Launch CLI
+```bash
+./scripts/launch_cli.command
+# Or directly:
+python cli_app.py -i  # Interactive mode
+```
 
 ### Run from Source (Development)
 ```bash
 source backend/venv/bin/activate
-python src/main.py
+python src/main.py              # Tkinter GUI
+python web_ui.py                # Web UI
+python cli_app.py -i            # CLI interactive
 ```
 
 ### Build C Binary
@@ -150,6 +184,8 @@ cd assets/c-asr
 ./download_model.sh --model large  # 1.7B
 ```
 
+---
+
 ## Testing
 
 ### Run All Tests
@@ -157,20 +193,26 @@ cd assets/c-asr
 # Run with Python unittest
 python -m unittest discover tests/ -v
 
-# Or individual test files
-python tests/test_ui.py
-python tests/test_live_streaming_final.py
+# Or with pytest
+pytest tests/ -v
 ```
 
-### Run with pytest
+### Run Specific Test Categories
 ```bash
-pytest tests/ -v
+# UI tests only
+pytest tests/test_ui.py -v
 
-# Specific test class
-pytest tests/test_ui.py::TestColorConstants -v
+# Live streaming tests
+pytest tests/test_live_streaming_final.py -v
 
-# Specific test method
-pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
+# LLM reforming tests
+pytest tests/test_llm_reforming.py -v
+
+# Performance benchmarks
+pytest tests/test_performance_benchmarks.py -v
+
+# Skip slow tests
+pytest tests/ -v -m "not slow"
 ```
 
 ### Test Categories
@@ -180,24 +222,30 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
 | `test_ui.py` | UI constants | Colors, breakpoints, sidebar behavior |
 | `test_live_streaming_final.py` | Live streaming | Threading, RTF, memory leaks |
 | `test_models.py` | ML models | Model loading, transcription accuracy |
+| `test_llm_reforming.py` | LLM features | Text reformation, analysis |
 | `test_memory_leaks.py` | Memory stability | Temp file cleanup, process cleanup |
 | `test_integration.py` | End-to-end | Full workflows, error recovery |
-| `test_error_handling.py` | Error handling | Edge cases, recovery |
-| `test_file_io.py` | File operations | Save/load, formats |
-| `test_macos_compat.py` | macOS specific | Permissions, paths |
-| `test_recording_vad.py` | Audio VAD | Silence detection |
-| `test_batch_mode.py` | Batch processing | Upload mode |
-| `test_user_workflows.py` | User scenarios | Complete workflows |
+| `test_webui_integration.py` | Web UI | Gradio interface tests |
+| `test_cli_functionality.py` | CLI | Command-line interface tests |
+| `test_transcription_backends.py` | Backends | C-binary, MLX, PyTorch |
+| `test_performance_benchmarks.py` | Performance | RTF measurements |
+| `test_edge_cases_real.py` | Edge cases | Error handling, corner cases |
 
 ### Test Reports
 - `tests/LIVE_STREAMING_FIX_REPORT.md` - Threading fix validation
+- `tests/TRANSCRIPTION_TEST_REPORT.md` - Backend accuracy tests
+- `LLM_TEST_REPORT.md` - LLM functionality tests
+- `INTEGRATION_TEST_REPORT.md` - Integration test results
+- `tests/PERFORMANCE_REPORT.md` - Benchmark results
+
+---
 
 ## Code Organization
 
 ### Main Application (`src/app.py`)
 
 #### Classes
-1. **`QwenASRApp`** - Main application controller
+1. **`QwenASRApp`** - Main application controller (~2200 lines)
    - UI setup and layout management
    - Recording control (start/stop)
    - File upload processing
@@ -208,7 +256,7 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
    - Recording controls
    - Language selection
    - Silence duration settings
-   - LLM reformer controls (enable/disable, mode selection)
+   - LLM reformer controls
    - Collapsible (260px expanded, 60px compact)
 
 3. **`SlideOutPanel`** - Mobile settings panel
@@ -232,8 +280,8 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
    - Real-time level callback
 
 7. **`TranscriptionEngine`** - Upload transcription
-   - Auto-detects backend (MLX/PyTorch)
-   - Always uses 1.7B model for best accuracy
+   - Auto-detects backend (C-binary/MLX/PyTorch)
+   - 1.7B model for best accuracy
    - Progress callbacks
 
 8. **`WaveformVisualizer`** - Audio level display
@@ -247,14 +295,12 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
    - Uses Qwen2.5-3B-Instruct-4bit model (~1.8GB)
    - Supports MLX (Apple Silicon) and llama.cpp (Intel) backends
    - 8GB RAM compatible
-   - Methods:
-     - `reform(text, mode)` - Reform text (punctuate, summarize, etc.)
-     - `analyze_correlations(text)` - Extract topics, entities, sentiment
-     - `compare_transcripts(transcripts)` - Compare multiple transcripts
 
-2. **`BatchTextReformer`** - Batch processing
-   - Process multiple texts with progress tracking
-   - Thread-safe queue-based communication
+2. **`SimpleLLM`** (`src/simple_llm.py`) - Alternative LLM
+   - Ollama backend (recommended)
+   - OpenAI API backend
+   - Context-aware prompts
+   - 1300+ lines with detailed prompt engineering
 
 3. **`ReformMode`** (Enum) - Reformation modes
    - `PUNCTUATE` - Add punctuation and capitalization
@@ -264,10 +310,7 @@ pytest tests/test_ui.py::TestColorConstants::test_all_colors_defined -v
    - `FORMAT` - Format as meeting notes
    - `CLEAN` - Remove filler words
 
-4. **`ReformResult`** - Reformation result dataclass
-5. **`CorrelationResult`** - Analysis result dataclass
-
-#### Key Constants (`src/constants.py`)
+### Key Constants (`src/constants.py`)
 ```python
 APP_NAME = "Qwen3-ASR Pro"
 VERSION = "3.3.0"
@@ -278,7 +321,43 @@ MIN_WIDTH_MOBILE = 550   # px
 COLORS = { ... }  # 17-color light theme
 ```
 
-### Responsive Layout
+---
+
+## Code Style Guidelines
+
+### Naming Conventions
+- **Classes:** `PascalCase` (e.g., `QwenASRApp`, `LiveStreamer`)
+- **Methods/Variables:** `snake_case` (e.g., `transcribe_audio`, `chunk_duration`)
+- **Constants:** `UPPER_CASE` (e.g., `SAMPLE_RATE`, `DEFAULT_LANGUAGE`)
+- **Private:** Leading underscore (e.g., `_process_chunk`, `_on_frame_configure`)
+
+### Documentation
+- **Docstrings:** Triple-quote with description for all public classes and methods
+- **Comments:** Inline for complex logic, use `#` for single-line comments
+- **Type hints:** Used for public methods where appropriate
+
+### Code Structure
+```python
+# Example from app.py
+class LiveStreamer:
+    """Live streaming transcription with 5-second chunks"""
+    
+    def __init__(self, app, model_dir: str):
+        """
+        Initialize live streamer.
+        
+        Args:
+            app: Parent application instance
+            model_dir: Path to model directory
+        """
+        self.app = app
+        self.model_dir = model_dir
+        # ...
+```
+
+---
+
+## Responsive Layout
 
 | Mode | Width | Layout |
 |------|-------|--------|
@@ -286,9 +365,11 @@ COLORS = { ... }  # 17-color light theme
 | Compact | 550-750px | Collapsed sidebar (60px) |
 | Mobile | < 550px | Bottom bar + slide-out panel |
 
-### Processing Modes
+---
 
-#### Live Mode (🎓 Live)
+## Processing Modes
+
+### Live Mode (🎓 Live)
 ```
 Microphone → [5s chunks] → C binary (qwen_asr) → Live text + Raw file
 ```
@@ -296,25 +377,17 @@ Microphone → [5s chunks] → C binary (qwen_asr) → Live text + Raw file
 - Word-by-word output
 - Raw audio saved to `~/Documents/Qwen3-ASR-Recordings/`
 
-#### Upload Mode (📁 File Upload)
+### Upload Mode (📁 File Upload)
 ```
-Audio file → MLX/PyTorch (1.7B) → Text
+Audio file → C-binary/MLX/PyTorch (1.7B) → Text
 ```
-- Always uses 1.7B model for best accuracy
+- 1.7B model for best accuracy
 - Supports WAV, MP3, M4A, FLAC, OGG, AAC
 - Batch processing with progress
 
-## Development Conventions
+---
 
-### Code Style
-- **Docstrings:** Triple-quote with description
-- **Comments:** Inline for complex logic
-- **Naming:** 
-  - Classes: `PascalCase`
-  - Methods/variables: `snake_case`
-  - Constants: `UPPER_CASE`
-- **Type hints:** Used for public methods
-- **Line length:** ~100 characters
+## Development Conventions
 
 ### Thread Safety
 - UI updates only from main thread via `root.after()`
@@ -341,6 +414,8 @@ except Exception as e:
 - Normalized to float32 (-1.0 to 1.0)
 - Conversion: `np.clip(audio * 32767, -32768, 32768).astype(np.int16)`
 
+---
+
 ## Testing Strategy
 
 ### Unit Tests
@@ -364,6 +439,8 @@ except Exception as e:
 - `assets/c-asr/samples/` - Sample recordings
 - JFK speech sample for accuracy testing
 
+---
+
 ## Security Considerations
 
 ### Microphone Permissions
@@ -373,12 +450,14 @@ except Exception as e:
 ### File System
 - Creates recordings in user's Documents folder
 - Temp files cleaned up after processing
-- No network access required
+- No network access required for core functionality
 
 ### Dependencies
 - All dependencies from PyPI
-- No external API keys required
+- No external API keys required (optional OpenAI)
 - Local ML inference only
+
+---
 
 ## Known Issues and Fixes
 
@@ -395,6 +474,8 @@ except Exception as e:
 - Process cleanup verified (no zombies)
 - Acceptable memory growth: ~20-30MB per session
 
+---
+
 ## Performance Targets
 
 | Model | Mode | Target RTF | Notes |
@@ -405,22 +486,28 @@ except Exception as e:
 
 *RTF (Real-Time Factor) < 1.0 means faster than real-time*
 
+---
+
 ## Deployment
 
 ### Distribution
 - Not packaged as .app bundle
-- Run via `launch.command`
+- Run via `launch.command` scripts
 - Requires Python 3.12+ installed
 
 ### User Data
 - Recordings: `~/Documents/Qwen3-ASR-Recordings/`
 - Naming: `live_YYYYMMDD_HHMMSS.wav`
 
+---
+
 ## Version History
 
 - **3.3.0** - Current: AI Text Refinement with Qwen2.5-3B LLM integration
 - **3.2.0** - Simplified UI, auto language detection, model optimization
 - **3.1.1** - Dual mode (Live/Fast), manual model selection
+
+---
 
 ## References
 
@@ -431,5 +518,5 @@ except Exception as e:
 
 ---
 
-**Last Updated:** 2026-02-28  
+**Last Updated:** 2026-03-13  
 **Maintainer:** HY-D1
